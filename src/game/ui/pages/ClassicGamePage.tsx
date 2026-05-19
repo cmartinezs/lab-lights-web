@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LabPanel } from '../../../shared/ui/components/LabPanel';
-import { StatusBadge } from '../../../shared/ui/nano/StatusBadge';
+import { IconRefresh } from '../../../shared/ui/nano/Icon';
 import {
   applyClassicMove,
   restartClassicGame,
@@ -12,12 +12,10 @@ import {
 import type { CellPosition } from '../../domain/board';
 import {
   createUnplayedClassicSeed,
-  loadClassicResults,
   loadCurrentClassicSeed,
   rememberPlayedClassicSeed,
   saveClassicResult,
   saveCurrentClassicSeed,
-  type ClassicResultRecord,
 } from '../../infra/classicLocalStore';
 import { getLastUsedInitials, getProfile, recordClassicWin } from '../../../profile/application/profileService';
 import type { LocalProfile } from '../../../profile/domain/profile';
@@ -25,7 +23,6 @@ import type { AppPage } from '../../../app/ui/components/AppNav';
 import { GameBoard } from '../components/GameBoard';
 import { GameStat } from '../components/GameStat';
 import { formatGameTime } from '../components/formatGameTime';
-import { RankingModal } from '../components/RankingModal';
 import { ResultPanel } from '../components/ResultPanel';
 
 export const R2_DEFAULT_SEED = 'r2-local-mvp-plus';
@@ -36,11 +33,10 @@ type ClassicGamePageProps = {
 
 export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
   const [session, setSession] = useState<ClassicGameSession>(() => startClassicGame(loadCurrentClassicSeed(R2_DEFAULT_SEED)));
-  const [results, setResults] = useState<ClassicResultRecord[]>(() => loadClassicResults());
   const [lastInitials, setLastInitials] = useState(() => getLastUsedInitials());
   const [profile, setProfile] = useState<LocalProfile>(() => getProfile(getLastUsedInitials()));
   const [savedResultSeed, setSavedResultSeed] = useState<string | null>(null);
-  const [isRankingOpen, setIsRankingOpen] = useState(false);
+  const [isModeVisible, setIsModeVisible] = useState(false);
 
   useEffect(() => {
     if (session.startedAt === null || session.status === 'won') {
@@ -86,7 +82,6 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
 
     saveClassicResult(session, initials);
     setSavedResultSeed(session.seed);
-    setResults(loadClassicResults());
     const updatedProfile = recordClassicWin(initials, {
       score: session.score,
       elapsedSeconds: session.elapsedMilliseconds / 1000,
@@ -96,52 +91,59 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
   }, [session, savedResultSeed]);
 
   return (
-    <main className="relative mx-auto grid min-h-[calc(100dvh-3.25rem)] w-full max-w-6xl gap-5 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:px-8">
-      <section className="flex min-h-0 flex-col items-center gap-5 lg:pt-3">
-        <LabPanel className="w-full max-w-2xl space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <StatusBadge tone="green">R2 · Classic 3×3</StatusBadge>
-              <h1 className="mt-3 font-display text-3xl font-black leading-tight text-lab-text sm:text-4xl">
-                Luces del Laboratorio
-              </h1>
-            </div>
-            <StatusBadge tone={session.status === 'won' ? 'cyan' : 'amber'}>
-              {session.status === 'won' ? 'Victoria' : 'En curso'}
-            </StatusBadge>
-          </div>
+    <main className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:px-8">
+      <section className="flex flex-col items-center gap-4">
+        {/* Header */}
+        <div className="flex w-full max-w-2xl items-center gap-3">
+          <button
+            aria-expanded={isModeVisible}
+            aria-label={isModeVisible ? 'Ocultar info del modo' : 'Ver info del modo'}
+            className="inline-flex min-h-9 items-center rounded-full border border-lab-green/50 bg-lab-green/10 px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-lab-green transition hover:bg-lab-green/20 focus:outline-none focus:ring-2 focus:ring-lab-green focus:ring-offset-2 focus:ring-offset-lab-bg"
+            type="button"
+            onClick={() => setIsModeVisible((v) => !v)}
+          >
+            R2 · Classic 3×3
+          </button>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <button
-              className="min-h-11 rounded-md border border-lab-line bg-lab-panelStrong px-4 font-mono text-sm font-bold uppercase text-lab-text transition hover:border-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
-              type="button"
-              onClick={handleRetry}
-            >
-              Reiniciar seed
-            </button>
-            <button
-              className="min-h-11 rounded-md border border-lab-cyan/60 bg-lab-cyan/10 px-4 font-mono text-sm font-bold uppercase text-lab-cyan transition hover:bg-lab-cyan/20 focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
-              type="button"
-              onClick={() => setIsRankingOpen(true)}
-            >
-              Ranking local
-            </button>
-          </div>
+          <h1 className="min-w-0 flex-1 truncate font-display text-xl font-black text-lab-text sm:text-2xl">
+            Luces del Laboratorio
+          </h1>
 
-          <div className="grid grid-cols-3 gap-2">
-            <GameStat label="Movs" value={session.moves} />
-            <GameStat label="Luces" value={session.litCells} />
-            <GameStat label="Tiempo" value={formatGameTime(session.elapsedMilliseconds)} />
-          </div>
-        </LabPanel>
+          <button
+            aria-label="Reiniciar tablero"
+            className="flex min-h-9 min-w-9 items-center justify-center rounded-md border border-lab-line bg-lab-panelStrong text-lab-muted transition hover:border-lab-cyan hover:text-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+            type="button"
+            onClick={handleRetry}
+          >
+            <IconRefresh size={16} />
+          </button>
+        </div>
+
+        {/* Mode info — only shown when badge is pressed */}
+        {isModeVisible && (
+          <LabPanel className="w-full max-w-2xl">
+            <p className="font-mono text-xs uppercase tracking-widest text-lab-muted">Modo</p>
+            <p className="mt-2 text-sm leading-6 text-lab-muted">
+              Activa una sala para invertirla junto con sus adyacentes ortogonales. La partida termina cuando todas quedan apagadas.
+            </p>
+          </LabPanel>
+        )}
+
+        {/* Stats */}
+        <div className="grid w-full max-w-2xl grid-cols-3 gap-2">
+          <GameStat label="Movs" value={session.moves} />
+          <GameStat label="Luces" value={session.litCells} />
+          <GameStat label="Tiempo" value={formatGameTime(session.elapsedMilliseconds)} />
+        </div>
 
         <GameBoard board={session.board} disabled={session.status === 'won'} onCellPress={handleCellPress} />
       </section>
 
-      <aside className="grid content-start gap-4 lg:sticky lg:top-[3.25rem] lg:self-start">
+      {/* Sidebar — desktop only */}
+      <aside className="hidden lg:grid lg:content-start lg:gap-4 lg:sticky lg:top-[3.25rem] lg:self-start">
         <LabPanel as="section" className="space-y-3">
           <p className="font-mono text-xs uppercase tracking-widest text-lab-muted">Modo</p>
-          <h2 className="font-display text-2xl font-black text-lab-text">Classic local</h2>
+          <h2 className="font-display text-xl font-black text-lab-text">Classic local</h2>
           <p className="text-sm leading-6 text-lab-muted">
             Activa una sala para invertirla junto con sus adyacentes ortogonales. La partida termina cuando todas quedan apagadas.
           </p>
@@ -172,7 +174,6 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
         onRetry={handleRetry}
         onSaveResult={handleSaveResult}
       />
-      {isRankingOpen ? <RankingModal results={results} onClose={() => setIsRankingOpen(false)} /> : null}
     </main>
   );
 }

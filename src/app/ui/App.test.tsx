@@ -37,12 +37,12 @@ describe('App', () => {
     }
 
     expect(screen.getByRole('dialog', { name: 'Laboratorio apagado' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Grabar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Grabar resultado' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Repetir' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repetir tablero' }));
 
-    expect(screen.queryByRole('heading', { name: 'Laboratorio apagado' })).not.toBeInTheDocument();
-    expect(screen.getByText('En curso')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Laboratorio apagado' })).not.toBeInTheDocument();
+    expect(screen.getByRole('grid', { name: 'Tablero Classic 3 por 3' })).toBeInTheDocument();
   });
 
   it('saves the result with arcade initials and updates profile stats', () => {
@@ -58,17 +58,16 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'C' }));
     fireEvent.click(screen.getByRole('button', { name: 'M' }));
     fireEvent.click(screen.getByRole('button', { name: 'S' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Grabar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Grabar resultado' }));
 
-    expect(screen.getByRole('button', { name: 'Grabado' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Resultado grabado' })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Nuevo' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ranking local' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva partida' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ranking' }));
 
-    const dialog = screen.getByRole('dialog', { name: 'Mejores registros' });
-    expect(dialog).toBeInTheDocument();
-    expect(dialog.querySelectorAll('li')).toHaveLength(1);
-    expect(dialog.querySelector('li span.text-lab-green')?.textContent).toBe('CMS');
+    expect(screen.getByRole('heading', { name: 'Mejores registros' })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem').filter((el) => el.tagName === 'LI' && el.closest('ol'))).toHaveLength(1);
+    expect(screen.getByText('CMS')).toBeInTheDocument();
   });
 
   it('navigates to rankings page', () => {
