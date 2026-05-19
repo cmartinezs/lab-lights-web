@@ -62,7 +62,7 @@ export function saveClassicResult(session: ClassicGameSession, initials: string)
     initials,
     score: session.score,
     moves: session.moves,
-    elapsedSeconds: session.elapsedSeconds,
+    elapsedSeconds: session.elapsedMilliseconds / 1000,
     seed: session.seed,
     createdAt: new Date().toISOString(),
   };
