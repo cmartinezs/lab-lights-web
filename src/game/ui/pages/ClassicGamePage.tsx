@@ -19,7 +19,7 @@ import {
   saveCurrentClassicSeed,
   type ClassicResultRecord,
 } from '../../infra/classicLocalStore';
-import { getProfile, recordClassicWin } from '../../../profile/application/profileService';
+import { getLastUsedInitials, getProfile, recordClassicWin } from '../../../profile/application/profileService';
 import type { LocalProfile } from '../../../profile/domain/profile';
 import type { AppPage } from '../../../app/ui/components/AppNav';
 import { GameBoard } from '../components/GameBoard';
@@ -37,7 +37,8 @@ type ClassicGamePageProps = {
 export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
   const [session, setSession] = useState<ClassicGameSession>(() => startClassicGame(loadCurrentClassicSeed(R2_DEFAULT_SEED)));
   const [results, setResults] = useState<ClassicResultRecord[]>(() => loadClassicResults());
-  const [profile, setProfile] = useState<LocalProfile>(() => getProfile());
+  const [lastInitials, setLastInitials] = useState(() => getLastUsedInitials());
+  const [profile, setProfile] = useState<LocalProfile>(() => getProfile(getLastUsedInitials()));
   const [savedResultSeed, setSavedResultSeed] = useState<string | null>(null);
   const [isRankingOpen, setIsRankingOpen] = useState(false);
 
@@ -86,7 +87,12 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
     saveClassicResult(session, initials);
     setSavedResultSeed(session.seed);
     setResults(loadClassicResults());
-    setProfile(recordClassicWin({ score: session.score, elapsedSeconds: session.elapsedMilliseconds / 1000 }));
+    const updatedProfile = recordClassicWin(initials, {
+      score: session.score,
+      elapsedSeconds: session.elapsedMilliseconds / 1000,
+    });
+    setLastInitials(initials);
+    setProfile(updatedProfile);
   }, [session, savedResultSeed]);
 
   return (
@@ -159,7 +165,7 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
       </aside>
 
       <ResultPanel
-        defaultInitials={profile.initials}
+        defaultInitials={lastInitials}
         saved={savedResultSeed === session.seed}
         session={session}
         onNewGame={handleNewGame}

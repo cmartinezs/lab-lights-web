@@ -88,7 +88,7 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Perfil' }));
 
-    expect(screen.getByRole('heading', { name: 'LAB' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Jugadores' })).toBeInTheDocument();
   });
 
   it('navigates to settings page', () => {

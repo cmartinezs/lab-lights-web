@@ -5,12 +5,9 @@ export type LocalProfile = {
   bestTimeSeconds: number | null;
 };
 
-export const DEFAULT_PROFILE: LocalProfile = {
-  initials: 'LAB',
-  gamesRecorded: 0,
-  bestScore: 0,
-  bestTimeSeconds: null,
-};
+export function createProfile(initials: string): LocalProfile {
+  return { initials, gamesRecorded: 0, bestScore: 0, bestTimeSeconds: null };
+}
 
 export function updateProfileWithWin(
   profile: LocalProfile,

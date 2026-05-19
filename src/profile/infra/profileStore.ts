@@ -1,25 +1,60 @@
-import { DEFAULT_PROFILE, type LocalProfile } from '../domain/profile';
+import { createProfile, type LocalProfile } from '../domain/profile';
 
-const PROFILE_KEY = 'lab-lights:profile';
+const PROFILES_KEY = 'lab-lights:profiles';
+const LAST_INITIALS_KEY = 'lab-lights:last-initials';
+const FALLBACK_INITIALS = 'LAB';
 
-export function loadProfile(): LocalProfile {
-  const raw = globalThis.localStorage?.getItem(PROFILE_KEY);
+type ProfilesMap = Record<string, LocalProfile>;
+
+export function loadProfile(initials: string): LocalProfile {
+  return loadProfilesMap()[initials] ?? createProfile(initials);
+}
+
+export function saveProfile(profile: LocalProfile): void {
+  const map = loadProfilesMap();
+
+  map[profile.initials] = profile;
+  globalThis.localStorage?.setItem(PROFILES_KEY, JSON.stringify(map));
+}
+
+export function loadAllProfiles(): LocalProfile[] {
+  return Object.values(loadProfilesMap());
+}
+
+export function loadLastInitials(): string {
+  return globalThis.localStorage?.getItem(LAST_INITIALS_KEY) ?? FALLBACK_INITIALS;
+}
+
+export function saveLastInitials(initials: string): void {
+  globalThis.localStorage?.setItem(LAST_INITIALS_KEY, initials);
+}
+
+function loadProfilesMap(): ProfilesMap {
+  const raw = globalThis.localStorage?.getItem(PROFILES_KEY);
 
   if (!raw) {
-    return { ...DEFAULT_PROFILE };
+    return {};
   }
 
   try {
     const parsed: unknown = JSON.parse(raw);
 
-    return isLocalProfile(parsed) ? parsed : { ...DEFAULT_PROFILE };
-  } catch {
-    return { ...DEFAULT_PROFILE };
-  }
-}
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
 
-export function saveProfile(profile: LocalProfile): void {
-  globalThis.localStorage?.setItem(PROFILE_KEY, JSON.stringify(profile));
+    const map: ProfilesMap = {};
+
+    for (const [key, value] of Object.entries(parsed)) {
+      if (isLocalProfile(value)) {
+        map[key] = value;
+      }
+    }
+
+    return map;
+  } catch {
+    return {};
+  }
 }
 
 function isLocalProfile(value: unknown): value is LocalProfile {
@@ -27,12 +62,12 @@ function isLocalProfile(value: unknown): value is LocalProfile {
     return false;
   }
 
-  const candidate = value as Partial<LocalProfile>;
+  const c = value as Partial<LocalProfile>;
 
   return (
-    typeof candidate.initials === 'string' &&
-    typeof candidate.gamesRecorded === 'number' &&
-    typeof candidate.bestScore === 'number' &&
-    (candidate.bestTimeSeconds === null || typeof candidate.bestTimeSeconds === 'number')
+    typeof c.initials === 'string' &&
+    typeof c.gamesRecorded === 'number' &&
+    typeof c.bestScore === 'number' &&
+    (c.bestTimeSeconds === null || typeof c.bestTimeSeconds === 'number')
   );
 }

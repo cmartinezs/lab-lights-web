@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PROFILE, updateProfileWithWin } from '../domain/profile';
+import { createProfile, updateProfileWithWin } from '../domain/profile';
+
+const DEFAULT_PROFILE = createProfile('LAB');
 
 describe('updateProfileWithWin', () => {
   it('increments gamesRecorded', () => {
