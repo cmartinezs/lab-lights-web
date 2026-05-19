@@ -27,7 +27,7 @@ export function ResultPanel({ session, onNewGame, onSaveResult, onRetry, saved }
   }
 
   return (
-    <div className="fixed inset-0 z-20 grid place-items-center bg-lab-bg/80 px-4 py-6 backdrop-blur-sm" role="presentation">
+    <div className="fixed inset-0 z-20 grid place-items-center overflow-y-auto bg-lab-bg/80 px-4 py-4 backdrop-blur-sm sm:py-6" role="presentation">
       <section
         aria-labelledby="result-title"
         aria-live="polite"
@@ -67,11 +67,11 @@ export function ResultPanel({ session, onNewGame, onSaveResult, onRetry, saved }
               </button>
             ))}
           </div>
-          <div className="grid max-h-32 grid-cols-8 gap-1 overflow-y-auto pr-1 sm:grid-cols-13">
+          <div className="grid grid-cols-7 gap-1 sm:grid-cols-13">
             {alphabet.map((letter) => (
               <button
                 key={letter}
-                className="min-h-9 rounded border border-lab-line bg-lab-bg font-mono text-sm font-black text-lab-text transition hover:border-lab-green hover:text-lab-green focus:outline-none focus:ring-2 focus:ring-lab-cyan"
+                className="min-h-8 rounded border border-lab-line bg-lab-bg font-mono text-sm font-black text-lab-text transition hover:border-lab-green hover:text-lab-green focus:outline-none focus:ring-2 focus:ring-lab-cyan sm:min-h-9"
                 onClick={() => {
                   setInitials((currentInitials) =>
                     currentInitials.map((currentLetter, index) => (index === selectedSlot ? letter : currentLetter)),
@@ -91,7 +91,11 @@ export function ResultPanel({ session, onNewGame, onSaveResult, onRetry, saved }
             ref={saveButtonRef}
             className="min-h-12 rounded-md border border-lab-green bg-lab-green px-4 font-mono text-sm font-black uppercase text-lab-bg transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-lab-green focus:ring-offset-2 focus:ring-offset-lab-bg disabled:cursor-default disabled:opacity-60"
             disabled={saved}
-            onClick={() => onSaveResult(initials.join(''))}
+            onClick={() => {
+              if (!saved) {
+                onSaveResult(initials.join(''));
+              }
+            }}
             type="button"
           >
             {saved ? 'Grabado' : 'Grabar'}

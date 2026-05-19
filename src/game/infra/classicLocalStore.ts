@@ -50,6 +50,13 @@ export function createUnplayedClassicSeed() {
 }
 
 export function saveClassicResult(session: ClassicGameSession, initials: string): ClassicResultRecord {
+  const results = loadClassicResults();
+  const existingResult = results.find((result) => result.seed === session.seed);
+
+  if (existingResult) {
+    return existingResult;
+  }
+
   const result: ClassicResultRecord = {
     id: crypto.randomUUID?.() ?? `${session.seed}-${Date.now()}`,
     initials,
@@ -59,7 +66,6 @@ export function saveClassicResult(session: ClassicGameSession, initials: string)
     seed: session.seed,
     createdAt: new Date().toISOString(),
   };
-  const results = loadClassicResults();
 
   globalThis.localStorage?.setItem(resultsKey, JSON.stringify([result, ...results].slice(0, 10)));
 

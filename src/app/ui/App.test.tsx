@@ -49,8 +49,9 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'M' }));
     fireEvent.click(screen.getByRole('button', { name: 'S' }));
     fireEvent.click(screen.getByRole('button', { name: 'Grabar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Grabado' }));
 
     expect(screen.getByRole('button', { name: 'Grabado' })).toBeDisabled();
-    expect(screen.getByText('CMS')).toBeInTheDocument();
+    expect(screen.getAllByText('CMS')).toHaveLength(1);
   });
 });
