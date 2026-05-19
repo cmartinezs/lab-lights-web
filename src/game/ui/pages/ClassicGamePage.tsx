@@ -79,25 +79,15 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
   }, []);
 
   const handleSaveResult = useCallback((initials: string) => {
-    setSession((currentSession) => {
-      if (currentSession.status !== 'won') {
-        return currentSession;
-      }
+    if (session.status !== 'won' || savedResultSeed === session.seed) {
+      return;
+    }
 
-      saveClassicResult(currentSession, initials);
-      setResults(loadClassicResults());
-      setSavedResultSeed(currentSession.seed);
-      setProfile(
-        recordClassicWin({
-          score: currentSession.score,
-          elapsedSeconds: currentSession.elapsedSeconds,
-          initials,
-        }),
-      );
-
-      return currentSession;
-    });
-  }, []);
+    saveClassicResult(session, initials);
+    setSavedResultSeed(session.seed);
+    setResults(loadClassicResults());
+    setProfile(recordClassicWin({ score: session.score, elapsedSeconds: session.elapsedSeconds, initials }));
+  }, [session, savedResultSeed]);
 
   return (
     <main className="relative mx-auto grid min-h-[calc(100dvh-3.25rem)] w-full max-w-6xl gap-5 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:px-8">
