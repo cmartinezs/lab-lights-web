@@ -161,8 +161,8 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
           <p className="mb-2 font-mono text-[0.65rem] uppercase tracking-widest text-lab-muted">Power-ups</p>
           <div className="flex gap-2">
             <PowerUpButton
-              description="Invierte todas las luces del tablero inicial"
-              disabled={session.moves > 0}
+              description="Invierte todas las luces del tablero"
+              disabled={session.moves === 0}
               icon={<IconContrast size={20} />}
               label="Invertir luces"
               onClick={handleInvert}
@@ -230,7 +230,7 @@ function PowerUpButton({ label, description, icon, disabled, onClick }: PowerUpB
           : 'border-lab-amber/50 bg-lab-amber/10 text-lab-amber hover:bg-lab-amber/20',
       ].join(' ')}
       disabled={disabled}
-      title={disabled ? 'Solo disponible antes del primer movimiento' : description}
+      title={disabled ? 'Disponible tras el primer movimiento' : description}
       type="button"
       onClick={onClick}
     >
