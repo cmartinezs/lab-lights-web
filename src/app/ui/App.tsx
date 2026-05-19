@@ -1,10 +1,10 @@
 import { AppLayout } from '../../shared/ui/layout/AppLayout';
-import { FoundationPage } from './pages/FoundationPage';
+import { ClassicGamePage } from '../../game/ui/pages/ClassicGamePage';
 
 export function App() {
   return (
     <AppLayout>
-      <FoundationPage />
+      <ClassicGamePage />
     </AppLayout>
   );
 }
