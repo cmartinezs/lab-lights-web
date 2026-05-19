@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { LabPanel } from '../../../shared/ui/components/LabPanel';
 import { IconContrast, IconPlay, IconRefresh } from '../../../shared/ui/nano/Icon';
 import {
@@ -127,15 +127,6 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
             </button>
 
             <button
-              aria-label="Invertir luces"
-              className="flex min-h-9 min-w-9 items-center justify-center rounded-md border border-lab-line bg-lab-panelStrong text-lab-muted transition hover:border-lab-amber hover:text-lab-amber focus:outline-none focus:ring-2 focus:ring-lab-amber focus:ring-offset-2 focus:ring-offset-lab-bg"
-              type="button"
-              onClick={handleInvert}
-            >
-              <IconContrast size={16} />
-            </button>
-
-            <button
               aria-label="Reiniciar tablero"
               className="flex min-h-9 min-w-9 items-center justify-center rounded-md border border-lab-line bg-lab-panelStrong text-lab-muted transition hover:border-lab-cyan hover:text-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
               type="button"
@@ -164,6 +155,20 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
         </div>
 
         <GameBoard board={session.board} disabled={session.status === 'won'} onCellPress={handleCellPress} />
+
+        {/* Power-ups */}
+        <div className="w-full max-w-2xl">
+          <p className="mb-2 font-mono text-[0.65rem] uppercase tracking-widest text-lab-muted">Power-ups</p>
+          <div className="flex gap-2">
+            <PowerUpButton
+              description="Invierte todas las luces del tablero inicial"
+              disabled={session.moves > 0}
+              icon={<IconContrast size={20} />}
+              label="Invertir luces"
+              onClick={handleInvert}
+            />
+          </div>
+        </div>
       </section>
 
       {/* Sidebar — desktop only */}
@@ -202,6 +207,36 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
         onSaveResult={handleSaveResult}
       />
     </main>
+  );
+}
+
+type PowerUpButtonProps = {
+  label: string;
+  description: string;
+  icon: ReactNode;
+  disabled: boolean;
+  onClick: () => void;
+};
+
+function PowerUpButton({ label, description, icon, disabled, onClick }: PowerUpButtonProps) {
+  return (
+    <button
+      aria-disabled={disabled}
+      aria-label={label}
+      className={[
+        'flex flex-col items-center gap-1.5 rounded-lg border px-4 py-3 font-mono transition focus:outline-none focus:ring-2 focus:ring-lab-amber focus:ring-offset-2 focus:ring-offset-lab-bg',
+        disabled
+          ? 'cursor-not-allowed border-lab-line bg-lab-bg/30 text-lab-line'
+          : 'border-lab-amber/50 bg-lab-amber/10 text-lab-amber hover:bg-lab-amber/20',
+      ].join(' ')}
+      disabled={disabled}
+      title={disabled ? 'Solo disponible antes del primer movimiento' : description}
+      type="button"
+      onClick={onClick}
+    >
+      {icon}
+      <span className="text-[0.65rem] uppercase tracking-wider">{label}</span>
+    </button>
   );
 }
 
