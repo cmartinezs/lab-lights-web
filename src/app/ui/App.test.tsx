@@ -1,10 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createClassicBoardFromSeed } from '../../game/domain/board';
 import { R1_DEFAULT_SEED } from '../../game/ui/pages/ClassicGamePage';
 import { App } from './App';
 
 describe('App', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('renders the R1 Classic local game', () => {
     render(<App />);
 
@@ -22,11 +26,31 @@ describe('App', () => {
       fireEvent.click(screen.getByTestId(`cell-${move.row}-${move.column}`));
     }
 
-    expect(screen.getByRole('heading', { name: 'Laboratorio apagado' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Laboratorio apagado' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Grabar' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Repetir seed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repetir' }));
 
     expect(screen.queryByRole('heading', { name: 'Laboratorio apagado' })).not.toBeInTheDocument();
     expect(screen.getByText('En curso')).toBeInTheDocument();
+  });
+
+  it('saves the result with arcade initials', () => {
+    render(<App />);
+
+    const { setupMoves } = createClassicBoardFromSeed(R1_DEFAULT_SEED);
+
+    for (const move of setupMoves) {
+      fireEvent.click(screen.getByTestId(`cell-${move.row}-${move.column}`));
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Inicial 1: L' }));
+    fireEvent.click(screen.getByRole('button', { name: 'C' }));
+    fireEvent.click(screen.getByRole('button', { name: 'M' }));
+    fireEvent.click(screen.getByRole('button', { name: 'S' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Grabar' }));
+
+    expect(screen.getByRole('button', { name: 'Grabado' })).toBeDisabled();
+    expect(screen.getByText('CMS')).toBeInTheDocument();
   });
 });

@@ -5,11 +5,20 @@ import {
   applyClassicMove,
   restartClassicGame,
   startClassicGame,
-  startNextClassicGame,
+  startClassicGameWithSeed,
   tickClassicGame,
   type ClassicGameSession,
 } from '../../application/classicGame';
 import type { CellPosition } from '../../domain/board';
+import {
+  createUnplayedClassicSeed,
+  loadClassicResults,
+  loadCurrentClassicSeed,
+  rememberPlayedClassicSeed,
+  saveClassicResult,
+  saveCurrentClassicSeed,
+  type ClassicResultRecord,
+} from '../../infra/classicLocalStore';
 import { GameBoard } from '../components/GameBoard';
 import { GameStat } from '../components/GameStat';
 import { ResultPanel } from '../components/ResultPanel';
@@ -17,7 +26,9 @@ import { ResultPanel } from '../components/ResultPanel';
 export const R1_DEFAULT_SEED = 'r1-local-mvp';
 
 export function ClassicGamePage() {
-  const [session, setSession] = useState<ClassicGameSession>(() => startClassicGame(R1_DEFAULT_SEED));
+  const [session, setSession] = useState<ClassicGameSession>(() => startClassicGame(loadCurrentClassicSeed(R1_DEFAULT_SEED)));
+  const [results, setResults] = useState<ClassicResultRecord[]>(() => loadClassicResults());
+  const [savedResultSeed, setSavedResultSeed] = useState<string | null>(null);
 
   useEffect(() => {
     if (session.startedAt === null || session.status === 'won') {
@@ -32,20 +43,47 @@ export function ClassicGamePage() {
   }, [session.startedAt, session.status]);
 
   const handleCellPress = useCallback((position: CellPosition) => {
-    setSession((currentSession) => applyClassicMove(currentSession, position));
+    setSession((currentSession) => {
+      const nextSession = applyClassicMove(currentSession, position);
+
+      if (nextSession.status === 'won') {
+        rememberPlayedClassicSeed(nextSession.seed);
+      }
+
+      return nextSession;
+    });
   }, []);
 
   const handleRetry = useCallback(() => {
     setSession((currentSession) => restartClassicGame(currentSession));
+    setSavedResultSeed(null);
   }, []);
 
   const handleNewGame = useCallback(() => {
-    setSession(startNextClassicGame());
+    const nextSeed = createUnplayedClassicSeed();
+
+    saveCurrentClassicSeed(nextSeed);
+    setSession(startClassicGameWithSeed(nextSeed));
+    setSavedResultSeed(null);
+  }, []);
+
+  const handleSaveResult = useCallback((initials: string) => {
+    setSession((currentSession) => {
+      if (currentSession.status !== 'won') {
+        return currentSession;
+      }
+
+      saveClassicResult(currentSession, initials);
+      setResults(loadClassicResults());
+      setSavedResultSeed(currentSession.seed);
+
+      return currentSession;
+    });
   }, []);
 
   return (
-    <main className="mx-auto grid min-h-dvh w-full max-w-6xl gap-5 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:px-8">
-      <section className="flex min-h-0 flex-col items-center justify-center gap-5">
+    <main className="relative mx-auto grid min-h-dvh w-full max-w-6xl gap-5 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:px-8">
+      <section className="flex min-h-0 flex-col items-center gap-5 lg:pt-3">
         <LabPanel className="w-full max-w-2xl space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -69,7 +107,7 @@ export function ClassicGamePage() {
         <GameBoard board={session.board} disabled={session.status === 'won'} onCellPress={handleCellPress} />
       </section>
 
-      <aside className="grid content-start gap-4">
+      <aside className="grid content-start gap-4 lg:sticky lg:top-4 lg:self-start">
         <LabPanel as="section" className="space-y-3">
           <p className="font-mono text-xs uppercase tracking-widest text-lab-muted">Modo</p>
           <h2 className="font-display text-2xl font-black text-lab-text">Classic local</h2>
@@ -85,8 +123,31 @@ export function ClassicGamePage() {
           </button>
         </LabPanel>
 
-        <ResultPanel session={session} onNewGame={handleNewGame} onRetry={handleRetry} />
+        <LabPanel as="section" className="space-y-3">
+          <p className="font-mono text-xs uppercase tracking-widest text-lab-muted">Ranking local</p>
+          {results.length === 0 ? (
+            <p className="text-sm leading-6 text-lab-muted">Aún no hay resultados grabados.</p>
+          ) : (
+            <ol className="space-y-2">
+              {results.slice(0, 5).map((result) => (
+                <li key={result.id} className="grid grid-cols-[3rem_1fr_auto] items-center gap-2 rounded border border-lab-line bg-lab-bg/60 p-2 font-mono text-sm">
+                  <span className="font-black text-lab-green">{result.initials}</span>
+                  <span className="text-lab-muted">{result.moves} movs</span>
+                  <span className="font-black text-lab-text">{result.score}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </LabPanel>
       </aside>
+
+      <ResultPanel
+        saved={savedResultSeed === session.seed}
+        session={session}
+        onNewGame={handleNewGame}
+        onRetry={handleRetry}
+        onSaveResult={handleSaveResult}
+      />
     </main>
   );
 }

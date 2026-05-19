@@ -79,6 +79,10 @@ export function startNextClassicGame(): ClassicGameSession {
   return startClassicGame(createDefaultClassicSeed());
 }
 
+export function startClassicGameWithSeed(seed: string): ClassicGameSession {
+  return startClassicGame(seed);
+}
+
 function createSession(input: {
   board: Board;
   seed: string;
