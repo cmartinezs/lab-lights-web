@@ -284,11 +284,11 @@ Los repositorios deben usar **versionado semántico (SemVer)** con formato `MAJO
 Las APIs públicas, contratos OpenAPI, migraciones y clientes generados deben estar asociados a una versión explícita. Todo cambio breaking requiere nueva versión de API (`/v2`) o una ventana de compatibilidad documentada.
 
 El flujo de ramas recomendado es **GitFlow**:
-- `main`: estado productivo, protegido y etiquetado con releases SemVer.
+- `master`: estado productivo, protegido y etiquetado con releases SemVer.
 - `develop`: integración continua de features listas para QA.
 - `feature/<nombre>`: trabajo incremental desde `develop`.
 - `release/<version>`: estabilización, QA, changelog y ajustes finales antes de producción.
-- `hotfix/<version>`: correcciones urgentes desde `main`, mergeadas de vuelta a `main` y `develop`.
+- `hotfix/<version>`: correcciones urgentes desde `master`, mergeadas de vuelta a `master` y `develop`.
 
 Cada release debe generar tag Git (`vX.Y.Z`) y changelog. Las ramas protegidas deben requerir PR, CI exitoso, revisión y validación de contratos cuando aplique.
 

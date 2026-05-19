@@ -32,10 +32,10 @@ Dejar preparada la base técnica del frontend y su validación mínima, sin impl
 
 | # | Description | Docs Involved | Status | Resolution Path |
 |---|---|---|---|---|
-| 1 | `npm prepare` no pudo ejecutar `git config core.hooksPath .githooks` porque `.git` no es un directorio Git válido en este workspace. | `.githooks/pre-commit`, workspace Git | RECORDED | Ejecutar `git init` o restaurar `.git` válido antes de activar hooks. |
+| 1 | `npm prepare` no pudo ejecutar `git config core.hooksPath .githooks` porque `.git` no era un directorio Git válido en ese momento. | `.githooks/pre-commit`, workspace Git | RESOLVED | Git fue configurado después y `core.hooksPath` quedó apuntando a `.githooks`. |
 
 ## Residuals
 
 | # | Description | Deferred To | Status |
 |---|---|---|
-| 1 | Activación efectiva de hooks Git | Repo Git válido | PENDING |
+| — | *None* | — | — |

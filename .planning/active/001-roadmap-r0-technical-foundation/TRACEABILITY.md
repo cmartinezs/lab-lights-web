@@ -19,7 +19,7 @@
 | Tailwind CSS | ✅ | ✅ | N/A | N/A | ✅ | Configurado en `tailwind.config.ts` y `src/app/styles.css` |
 | Anime.js | ✅ | ✅ | N/A | N/A | ✅ | Encapsulado en `src/shared/motion/createTimeline.ts` |
 | Jerarquía de componentes | ✅ | ✅ | N/A | N/A | ✅ | Layout, Page, Section, Component y NanoComponent iniciales |
-| Pre-commit | ✅ | ✅ | ✅ | ⚠️ | ✅ | `.githooks/pre-commit` creado; activación Git bloqueada por `.git` inválido |
+| Pre-commit | ✅ | ✅ | ✅ | ✅ | ✅ | `.githooks/pre-commit` creado y `core.hooksPath` activado |
 | React + Vite | ✅ | ✅ | ✅ | ✅ | ✅ | Scaffold y build verificados |
 | Vitest + Testing Library | ✅ | ✅ | ✅ | N/A | ✅ | Test inicial agregado |
 
@@ -34,4 +34,4 @@
 
 | ID | Term / Issue | Blocker | Status | Target Resolution |
 |---|---|---|---|---|
-| R0-R1 | Activar hooks con `git config core.hooksPath .githooks` | `.git` inválido en workspace actual | PENDING | Cuando exista repositorio Git válido |
+| — | *None* | — | — | — |
