@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LabPanel } from '../../../shared/ui/components/LabPanel';
-import { IconContrast, IconRefresh } from '../../../shared/ui/nano/Icon';
+import { IconContrast, IconPlay, IconRefresh } from '../../../shared/ui/nano/Icon';
 import {
   applyClassicMove,
   invertClassicGame,
@@ -116,6 +116,15 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
             </button>
 
             <div className="flex-1" />
+
+            <button
+              aria-label="Nuevo tablero"
+              className="flex min-h-9 min-w-9 items-center justify-center rounded-md border border-lab-line bg-lab-panelStrong text-lab-muted transition hover:border-lab-cyan hover:text-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+              type="button"
+              onClick={handleNewGame}
+            >
+              <IconPlay size={16} />
+            </button>
 
             <button
               aria-label="Invertir luces"
