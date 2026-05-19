@@ -64,6 +64,13 @@ export function toggleCellAndAdjacent(board: Board, position: CellPosition): Boa
   };
 }
 
+export function invertBoard(board: Board): Board {
+  return {
+    ...board,
+    cells: board.cells.map((cell) => ({ ...cell, state: invertCellState(cell.state) })),
+  };
+}
+
 export function isVictory(board: Board): boolean {
   return board.cells.every((cell) => cell.state === 'off');
 }

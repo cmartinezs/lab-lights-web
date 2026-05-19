@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ClassicGameSession } from '../../application/classicGame';
+import { IconCheck, IconPlay, IconUndo } from '../../../shared/ui/nano/Icon';
 import { formatGameTime } from './formatGameTime';
 
 type ResultPanelProps = {
   session: ClassicGameSession;
+  defaultInitials?: string;
   onNewGame: () => void;
   onSaveResult: (initials: string) => void;
   onRetry: () => void;
@@ -12,8 +14,8 @@ type ResultPanelProps = {
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-export function ResultPanel({ session, onNewGame, onSaveResult, onRetry, saved }: ResultPanelProps) {
-  const [initials, setInitials] = useState(['L', 'A', 'B']);
+export function ResultPanel({ session, defaultInitials = 'LAB', onNewGame, onSaveResult, onRetry, saved }: ResultPanelProps) {
+  const [initials, setInitials] = useState(() => defaultInitials.padEnd(3, 'A').slice(0, 3).toUpperCase().split(''));
   const [selectedSlot, setSelectedSlot] = useState(0);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -87,33 +89,37 @@ export function ResultPanel({ session, onNewGame, onSaveResult, onRetry, saved }
           </div>
         </div>
 
-        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-3 gap-2">
           <button
             ref={saveButtonRef}
-            className="min-h-12 rounded-md border border-lab-green bg-lab-green px-4 font-mono text-sm font-black uppercase text-lab-bg transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-lab-green focus:ring-offset-2 focus:ring-offset-lab-bg disabled:cursor-default disabled:opacity-60"
+            aria-label={saved ? 'Resultado grabado' : 'Grabar resultado'}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-lab-green bg-lab-green px-4 font-mono text-sm font-black uppercase text-lab-bg transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-lab-green focus:ring-offset-2 focus:ring-offset-lab-bg disabled:cursor-default disabled:opacity-60"
             disabled={saved}
+            type="button"
             onClick={() => {
-              if (!saved) {
-                onSaveResult(initials.join(''));
-              }
+              if (!saved) onSaveResult(initials.join(''));
             }}
-            type="button"
           >
-            {saved ? 'Grabado' : 'Grabar'}
+            <IconCheck size={16} />
+            <span className="hidden sm:inline">{saved ? 'Grabado' : 'Grabar'}</span>
           </button>
           <button
-            className="min-h-12 rounded-md border border-lab-cyan/60 bg-lab-cyan/10 px-4 font-mono text-sm font-black uppercase text-lab-cyan transition hover:bg-lab-cyan/20 focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+            aria-label="Nueva partida"
+            className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-lab-cyan/60 bg-lab-cyan/10 px-4 font-mono text-sm font-black uppercase text-lab-cyan transition hover:bg-lab-cyan/20 focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+            type="button"
             onClick={onNewGame}
-            type="button"
           >
-            Nuevo
+            <IconPlay size={16} />
+            <span className="hidden sm:inline">Nuevo</span>
           </button>
           <button
-            className="min-h-12 rounded-md border border-lab-line bg-lab-bg px-4 font-mono text-sm font-black uppercase text-lab-text transition hover:border-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
-            onClick={onRetry}
+            aria-label="Repetir tablero"
+            className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-lab-line bg-lab-bg px-4 font-mono text-sm font-black uppercase text-lab-text transition hover:border-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
             type="button"
+            onClick={onRetry}
           >
-            Repetir
+            <IconUndo size={16} />
+            <span className="hidden sm:inline">Repetir</span>
           </button>
         </div>
       </section>

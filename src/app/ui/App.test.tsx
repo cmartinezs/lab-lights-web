@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createClassicBoardFromSeed } from '../../game/domain/board';
-import { R1_DEFAULT_SEED } from '../../game/ui/pages/ClassicGamePage';
+import { R2_DEFAULT_SEED } from '../../game/ui/pages/ClassicGamePage';
 import { App } from './App';
 
 describe('App', () => {
@@ -9,37 +9,46 @@ describe('App', () => {
     localStorage.clear();
   });
 
-  it('renders the R1 Classic local game', () => {
+  it('renders the R2 Classic local game', () => {
     render(<App />);
 
     expect(screen.getByRole('heading', { name: 'Luces del Laboratorio' })).toBeInTheDocument();
-    expect(screen.getByText('R1 · Classic 3x3')).toBeInTheDocument();
+    expect(screen.getByText('R2 · Classic 3×3')).toBeInTheDocument();
     expect(screen.getByText('0:00.0')).toBeInTheDocument();
     expect(screen.getByRole('grid', { name: 'Tablero Classic 3 por 3' })).toBeInTheDocument();
+  });
+
+  it('shows app navigation bar', () => {
+    render(<App />);
+
+    expect(screen.getByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ranking' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Perfil' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Config' })).toBeInTheDocument();
   });
 
   it('lets the player win and repeat the local loop', () => {
     render(<App />);
 
-    const { setupMoves } = createClassicBoardFromSeed(R1_DEFAULT_SEED);
+    const { setupMoves } = createClassicBoardFromSeed(R2_DEFAULT_SEED);
 
     for (const move of setupMoves) {
       fireEvent.click(screen.getByTestId(`cell-${move.row}-${move.column}`));
     }
 
     expect(screen.getByRole('dialog', { name: 'Laboratorio apagado' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Grabar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Grabar resultado' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Repetir' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repetir tablero' }));
 
-    expect(screen.queryByRole('heading', { name: 'Laboratorio apagado' })).not.toBeInTheDocument();
-    expect(screen.getByText('En curso')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Laboratorio apagado' })).not.toBeInTheDocument();
+    expect(screen.getByRole('grid', { name: 'Tablero Classic 3 por 3' })).toBeInTheDocument();
   });
 
-  it('saves the result with arcade initials', () => {
+  it('saves the result with arcade initials and updates profile stats', () => {
     render(<App />);
 
-    const { setupMoves } = createClassicBoardFromSeed(R1_DEFAULT_SEED);
+    const { setupMoves } = createClassicBoardFromSeed(R2_DEFAULT_SEED);
 
     for (const move of setupMoves) {
       fireEvent.click(screen.getByTestId(`cell-${move.row}-${move.column}`));
@@ -49,14 +58,43 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'C' }));
     fireEvent.click(screen.getByRole('button', { name: 'M' }));
     fireEvent.click(screen.getByRole('button', { name: 'S' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Grabar' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Grabado' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Grabar resultado' }));
 
-    expect(screen.getByRole('button', { name: 'Grabado' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Nuevo' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ranking local' }));
+    expect(screen.getByRole('button', { name: 'Resultado grabado' })).toBeDisabled();
 
-    expect(screen.getByRole('dialog', { name: 'Mejores registros' })).toBeInTheDocument();
-    expect(screen.getAllByText('CMS')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva partida' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ranking' }));
+
+    expect(screen.getByRole('heading', { name: 'Mejores registros' })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem').filter((el) => el.tagName === 'LI' && el.closest('ol'))).toHaveLength(1);
+    expect(screen.getByText('CMS')).toBeInTheDocument();
+  });
+
+  it('navigates to rankings page', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ranking' }));
+
+    expect(screen.getByRole('heading', { name: 'Mejores registros' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '← Volver' }));
+
+    expect(screen.getByRole('heading', { name: 'Luces del Laboratorio' })).toBeInTheDocument();
+  });
+
+  it('navigates to profile page', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Perfil' }));
+
+    expect(screen.getByRole('heading', { name: 'Jugadores' })).toBeInTheDocument();
+  });
+
+  it('navigates to settings page', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Config' }));
+
+    expect(screen.getByRole('heading', { name: 'Preferencias' })).toBeInTheDocument();
   });
 });
