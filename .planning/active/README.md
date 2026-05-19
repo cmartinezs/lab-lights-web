@@ -6,7 +6,6 @@ Planificaciones activas derivadas de `.raw/PRE_ROADMAP.md`. Todas están escrita
 
 | ID | Release | Nombre | Estado |
 |---|---|---|---|
-| [001](001-roadmap-r0-technical-foundation/README.md) | R0 | Fundación técnica | DONE |
 | [002](002-roadmap-r1-local-mvp/README.md) | R1 | MVP local | PENDING |
 | [003](003-roadmap-r2-local-mvp-plus/README.md) | R2 | MVP+ local | PENDING |
 | [004](004-roadmap-r3-base-variants/README.md) | R3 | Variantes base | PENDING |

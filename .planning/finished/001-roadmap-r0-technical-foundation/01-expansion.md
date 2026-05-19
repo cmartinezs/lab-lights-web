@@ -28,4 +28,4 @@ flowchart LR
 
 ## Notes
 
-R0 fue autorizado explícitamente por el usuario y ejecutado. El hook de pre-commit existe en `.githooks/pre-commit`, pero `git config core.hooksPath .githooks` no pudo aplicarse porque este workspace no tiene un directorio `.git` válido.
+R0 fue autorizado explícitamente por el usuario y ejecutado. El hook de pre-commit existe en `.githooks/pre-commit` y `core.hooksPath` quedó configurado hacia `.githooks`.

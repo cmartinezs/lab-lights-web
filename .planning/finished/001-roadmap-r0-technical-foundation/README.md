@@ -17,3 +17,11 @@ R0 quedó implementado para `lab-lights-web`: scaffold React/Vite, TypeScript es
 - [`01-expansion.md`](01-expansion.md)
 - [`02-deepening/scope-01-foundation-setup.md`](02-deepening/scope-01-foundation-setup.md)
 - [`TRACEABILITY.md`](TRACEABILITY.md)
+
+## Retrospective
+
+R0 cumplió su objetivo de habilitar la base técnica sin adelantar gameplay: la app React/Vite quedó operativa con TypeScript estricto, Tailwind CSS, Anime.js encapsulado, estructura inicial por features, scripts de validación, test base, build y hook de pre-commit.
+
+La única desviación relevante fue operativa: `npm prepare` no pudo configurar el hook cuando `.git` todavía no estaba disponible como directorio válido. Se resolvió después configurando `core.hooksPath` hacia `.githooks`.
+
+No quedan residuales abiertos para R0. La siguiente planificación puede asumir que la fundación técnica existe y concentrarse en el MVP local.

@@ -37,7 +37,6 @@ When a prompt contains one of these parameters (at the start or end):
 
 | ID | Prefijo | Nombre | Prioridad |
 |----|---------|--------|-----------|
-| [001](active/001-roadmap-r0-technical-foundation/README.md) | R0 | Fundación técnica | DONE / Base |
 | [002](active/002-roadmap-r1-local-mvp/README.md) | R1 | MVP local | Secuencial / MVP |
 | [003](active/003-roadmap-r2-local-mvp-plus/README.md) | R2 | MVP+ local | Secuencial / MVP+ |
 | [004](active/004-roadmap-r3-base-variants/README.md) | R3 | Variantes base | Secuencial |
@@ -52,7 +51,7 @@ When a prompt contains one of these parameters (at the start or end):
 
 | ID | Prefijo | Nombre | Fecha cierre |
 |----|---------|--------|--------------|
-| — | — | *None yet* | — |
+| [001](finished/001-roadmap-r0-technical-foundation/README.md) | R0 | Fundación técnica | 2026-05-19 |
 
 ---
 

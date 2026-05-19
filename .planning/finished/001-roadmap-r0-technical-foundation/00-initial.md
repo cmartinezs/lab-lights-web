@@ -1,7 +1,7 @@
 # INITIAL: R0 - Fundación técnica
 
 > **Status:** Initial written  
-> [← active/README.md](../README.md)
+> [← finished/README.md](../README.md)
 
 ## Intent
 
@@ -31,4 +31,3 @@ El roadmap necesita una base estable antes del MVP jugable: Vite, TypeScript, Ta
 ### Open Questions
 
 - ¿Se inicializará únicamente `lab-lights-web` o también un esqueleto paralelo de `lab-lights-api`?
-
