@@ -9,7 +9,7 @@ Entregar Classic 3x3 jugable en local con loop completo de partida, victoria, re
 
 ## Outcome
 
-R1 implementa Classic 3x3 local en React: dominio puro de tablero, seed determinística, inversión de sala y adyacentes, sesión local, contador de movimientos, temporizador informativo, resultado modal con puntaje simple, ingreso de iniciales estilo arcade, ranking local mínimo y repetición de seed o nuevo tablero.
+R1 implementa Classic 3x3 local en React: dominio puro de tablero, seed determinística, inversión de sala y adyacentes, sesión local, contador de movimientos, temporizador con décimas, resultado modal con puntaje simple, ingreso de iniciales estilo arcade, ranking local modal y repetición de seed o nuevo tablero.
 
 ## Files
 

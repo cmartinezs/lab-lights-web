@@ -16,6 +16,7 @@ export type ClassicGameSession = {
   setupMoves: CellPosition[];
   moves: number;
   elapsedSeconds: number;
+  elapsedMilliseconds: number;
   startedAt: number | null;
   finishedAt: number | null;
   status: ClassicGameStatus;
@@ -31,7 +32,7 @@ export function startClassicGame(seed = createDefaultClassicSeed()): ClassicGame
     seed,
     setupMoves,
     moves: 0,
-    elapsedSeconds: 0,
+    elapsedMilliseconds: 0,
     startedAt: null,
     finishedAt: null,
   });
@@ -47,14 +48,14 @@ export function applyClassicMove(session: ClassicGameSession, position: CellPosi
   const startedAt = session.startedAt ?? now;
   const won = isVictory(board);
   const finishedAt = won ? now : null;
-  const elapsedSeconds = Math.max(0, Math.floor(((finishedAt ?? now) - startedAt) / 1000));
+  const elapsedMilliseconds = Math.max(0, (finishedAt ?? now) - startedAt);
 
   return createSession({
     board,
     seed: session.seed,
     setupMoves: session.setupMoves,
     moves,
-    elapsedSeconds,
+    elapsedMilliseconds,
     startedAt,
     finishedAt,
   });
@@ -67,6 +68,7 @@ export function tickClassicGame(session: ClassicGameSession, now = Date.now()): 
 
   return {
     ...session,
+    elapsedMilliseconds: Math.max(0, now - session.startedAt),
     elapsedSeconds: Math.max(0, Math.floor((now - session.startedAt) / 1000)),
   };
 }
@@ -88,7 +90,7 @@ function createSession(input: {
   seed: string;
   setupMoves: CellPosition[];
   moves: number;
-  elapsedSeconds: number;
+  elapsedMilliseconds: number;
   startedAt: number | null;
   finishedAt: number | null;
 }): ClassicGameSession {
@@ -96,6 +98,7 @@ function createSession(input: {
 
   return {
     ...input,
+    elapsedSeconds: Math.floor(input.elapsedMilliseconds / 1000),
     status,
     score:
       status === 'won'

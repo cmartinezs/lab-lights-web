@@ -12,6 +12,8 @@
 | Resultado | ✅ | ✅ | ✅ | ✅ | ✅ | Puntaje simple en `ResultPanel` modal |
 | Iniciales arcade | ✅ | ✅ | ✅ | ✅ | ✅ | Grabación local mínima de resultado con iniciales |
 | Historial local de tableros | ✅ | ✅ | ✅ | ✅ | ✅ | Seed actual y seeds jugadas en `localStorage` |
+| Temporizador Classic | ✅ | ✅ | ✅ | ✅ | ✅ | Visible como minutos:segundos.décimas |
+| Ranking local modal | ✅ | ✅ | ✅ | ✅ | ✅ | Acceso desde botón superior |
 
 ## Decisions Made
 

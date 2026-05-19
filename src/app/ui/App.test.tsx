@@ -14,6 +14,7 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: 'Luces del Laboratorio' })).toBeInTheDocument();
     expect(screen.getByText('R1 · Classic 3x3')).toBeInTheDocument();
+    expect(screen.getByText('0:00.0')).toBeInTheDocument();
     expect(screen.getByRole('grid', { name: 'Tablero Classic 3 por 3' })).toBeInTheDocument();
   });
 
@@ -52,6 +53,10 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Grabado' }));
 
     expect(screen.getByRole('button', { name: 'Grabado' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ranking local' }));
+
+    expect(screen.getByRole('dialog', { name: 'Mejores registros' })).toBeInTheDocument();
     expect(screen.getAllByText('CMS')).toHaveLength(1);
   });
 });

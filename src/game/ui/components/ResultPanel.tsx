@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ClassicGameSession } from '../../application/classicGame';
+import { formatGameTime } from './formatGameTime';
 
 type ResultPanelProps = {
   session: ClassicGameSession;
@@ -44,7 +45,7 @@ export function ResultPanel({ session, onNewGame, onSaveResult, onRetry, saved }
         <div className="mt-4 grid grid-cols-3 gap-2">
           <ResultMetric label="Puntaje" value={session.score} />
           <ResultMetric label="Movs" value={session.moves} />
-          <ResultMetric label="Tiempo" value={`${session.elapsedSeconds}s`} />
+          <ResultMetric label="Tiempo" value={formatGameTime(session.elapsedMilliseconds)} />
         </div>
 
         <div className="mt-5 space-y-3">
@@ -67,7 +68,7 @@ export function ResultPanel({ session, onNewGame, onSaveResult, onRetry, saved }
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-1 sm:grid-cols-13">
+          <div className="grid grid-cols-7 gap-1 sm:grid-cols-[repeat(13,minmax(0,1fr))]">
             {alphabet.map((letter) => (
               <button
                 key={letter}

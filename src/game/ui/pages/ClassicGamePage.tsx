@@ -21,6 +21,8 @@ import {
 } from '../../infra/classicLocalStore';
 import { GameBoard } from '../components/GameBoard';
 import { GameStat } from '../components/GameStat';
+import { formatGameTime } from '../components/formatGameTime';
+import { RankingModal } from '../components/RankingModal';
 import { ResultPanel } from '../components/ResultPanel';
 
 export const R1_DEFAULT_SEED = 'r1-local-mvp';
@@ -29,6 +31,7 @@ export function ClassicGamePage() {
   const [session, setSession] = useState<ClassicGameSession>(() => startClassicGame(loadCurrentClassicSeed(R1_DEFAULT_SEED)));
   const [results, setResults] = useState<ClassicResultRecord[]>(() => loadClassicResults());
   const [savedResultSeed, setSavedResultSeed] = useState<string | null>(null);
+  const [isRankingOpen, setIsRankingOpen] = useState(false);
 
   useEffect(() => {
     if (session.startedAt === null || session.status === 'won') {
@@ -37,7 +40,7 @@ export function ClassicGamePage() {
 
     const intervalId = window.setInterval(() => {
       setSession((currentSession) => tickClassicGame(currentSession));
-    }, 1000);
+    }, 100);
 
     return () => window.clearInterval(intervalId);
   }, [session.startedAt, session.status]);
@@ -97,10 +100,27 @@ export function ClassicGamePage() {
             </StatusBadge>
           </div>
 
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              className="min-h-11 rounded-md border border-lab-line bg-lab-panelStrong px-4 font-mono text-sm font-bold uppercase text-lab-text transition hover:border-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+              onClick={handleRetry}
+              type="button"
+            >
+              Reiniciar seed
+            </button>
+            <button
+              className="min-h-11 rounded-md border border-lab-cyan/60 bg-lab-cyan/10 px-4 font-mono text-sm font-bold uppercase text-lab-cyan transition hover:bg-lab-cyan/20 focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+              onClick={() => setIsRankingOpen(true)}
+              type="button"
+            >
+              Ranking local
+            </button>
+          </div>
+
           <div className="grid grid-cols-3 gap-2">
             <GameStat label="Movs" value={session.moves} />
             <GameStat label="Luces" value={session.litCells} />
-            <GameStat label="Tiempo" value={`${session.elapsedSeconds}s`} />
+            <GameStat label="Tiempo" value={formatGameTime(session.elapsedMilliseconds)} />
           </div>
         </LabPanel>
 
@@ -114,30 +134,6 @@ export function ClassicGamePage() {
           <p className="text-sm leading-6 text-lab-muted">
             Activa una sala para invertirla junto con sus adyacentes ortogonales. La partida termina cuando todas quedan apagadas.
           </p>
-          <button
-            className="mt-2 min-h-11 w-full rounded-md border border-lab-line bg-lab-panelStrong px-4 font-mono text-sm font-bold uppercase text-lab-text transition hover:border-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
-            onClick={handleRetry}
-            type="button"
-          >
-            Reiniciar seed
-          </button>
-        </LabPanel>
-
-        <LabPanel as="section" className="space-y-3">
-          <p className="font-mono text-xs uppercase tracking-widest text-lab-muted">Ranking local</p>
-          {results.length === 0 ? (
-            <p className="text-sm leading-6 text-lab-muted">Aún no hay resultados grabados.</p>
-          ) : (
-            <ol className="space-y-2">
-              {results.slice(0, 5).map((result) => (
-                <li key={result.id} className="grid grid-cols-[3rem_1fr_auto] items-center gap-2 rounded border border-lab-line bg-lab-bg/60 p-2 font-mono text-sm">
-                  <span className="font-black text-lab-green">{result.initials}</span>
-                  <span className="text-lab-muted">{result.moves} movs</span>
-                  <span className="font-black text-lab-text">{result.score}</span>
-                </li>
-              ))}
-            </ol>
-          )}
         </LabPanel>
       </aside>
 
@@ -148,6 +144,7 @@ export function ClassicGamePage() {
         onRetry={handleRetry}
         onSaveResult={handleSaveResult}
       />
+      {isRankingOpen ? <RankingModal results={results} onClose={() => setIsRankingOpen(false)} /> : null}
     </main>
   );
 }
