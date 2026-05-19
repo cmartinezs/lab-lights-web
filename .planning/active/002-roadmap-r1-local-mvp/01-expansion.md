@@ -1,13 +1,13 @@
 # EXPANSION: R1 - MVP local
 
-> **Status:** Expansion written, not executed  
+> **Status:** Completed  
 > [← README.md](README.md)
 
 ## Scope Summary
 
 | # | Scope | SDLC Phase(s) | Depends On | Status |
 |---|---|---|---|---|
-| 01 | Classic local loop | R / S / V / T | R0 | PENDING |
+| 01 | Classic local loop | R / S / V / T | R0 | DONE |
 
 ## Dependency Map
 
@@ -28,5 +28,4 @@ flowchart LR
 
 ## Notes
 
-R1 no incluye ranking, monedas, power-ups, backend ni login.
-
+R1 fue ejecutado en `feature/r1-local-mvp`. No incluye ranking, monedas, power-ups, backend ni login.

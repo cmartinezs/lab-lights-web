@@ -1,11 +1,15 @@
 # Planning 002 - R1 Local MVP
 
-> **Status:** Expansion / Deepening written, not executed  
+> **Status:** Implemented in `feature/r1-local-mvp`  
 > **Source:** `.raw/PRE_ROADMAP.md` → `R1 - MVP local`
 
 ## Summary
 
 Entregar Classic 3x3 jugable en local con loop completo de partida, victoria, resultado y repetición.
+
+## Outcome
+
+R1 implementa Classic 3x3 local en React: dominio puro de tablero, seed determinística, inversión de sala y adyacentes, sesión local, contador de movimientos, temporizador informativo, resultado con puntaje simple y repetición de seed o nuevo tablero.
 
 ## Files
 
@@ -13,4 +17,3 @@ Entregar Classic 3x3 jugable en local con loop completo de partida, victoria, re
 - [`01-expansion.md`](01-expansion.md)
 - [`02-deepening/scope-01-classic-local-loop.md`](02-deepening/scope-01-classic-local-loop.md)
 - [`TRACEABILITY.md`](TRACEABILITY.md)
-
