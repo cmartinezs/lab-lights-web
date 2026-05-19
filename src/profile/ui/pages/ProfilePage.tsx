@@ -1,6 +1,7 @@
 import { getAllProfiles } from '../../application/profileService';
 import { formatGameTime } from '../../../game/ui/components/formatGameTime';
 import { LabPanel } from '../../../shared/ui/components/LabPanel';
+import { RankIcon } from '../../../shared/ui/components/RankIcon';
 import type { LocalProfile } from '../../domain/profile';
 
 type ProfilePageProps = {
@@ -55,11 +56,9 @@ function EmptyState() {
 }
 
 function ProfileRow({ profile, rank }: { profile: LocalProfile; rank: number }) {
-  const isTop3 = rank <= 3;
-
   return (
     <li className="grid grid-cols-[2rem_3.5rem_1fr_4.5rem_5rem] items-center gap-2 rounded border border-lab-line bg-lab-bg/60 px-3 py-2.5 font-mono text-sm">
-      <span className={`font-black ${isTop3 ? 'text-lab-amber' : 'text-lab-muted'}`}>{rank}</span>
+      <RankIcon rank={rank} />
       <span className="font-black text-lab-green">{profile.initials}</span>
       <span className="text-lab-muted">{profile.gamesRecorded} grab.</span>
       <span className="text-right text-lab-muted">

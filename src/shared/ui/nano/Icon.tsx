@@ -96,6 +96,23 @@ export function IconUndo(props: IconProps) {
   );
 }
 
+export function IconMedal(props: IconProps) {
+  return (
+    <Svg {...props} strokeWidth={1.6}>
+      <circle cx="12" cy="9" r="6" />
+      <path d="M8.5 14.5 7 20h10l-1.5-5.5" />
+    </Svg>
+  );
+}
+
+export function IconRankDot(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
 export function IconContrast(props: IconProps) {
   return (
     <Svg {...props}>
