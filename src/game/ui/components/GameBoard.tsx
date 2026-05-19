@@ -75,7 +75,7 @@ const BoardCellButton = memo(function BoardCellButton({
         'focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg',
         disabled ? 'cursor-default opacity-80' : 'cursor-pointer hover:-translate-y-0.5',
         isOn
-          ? 'border-lab-green bg-lab-green text-lab-bg shadow-light'
+          ? 'lab-cell-on border-lab-green bg-lab-green text-lab-bg shadow-light'
           : 'border-lab-line bg-lab-panelStrong text-lab-muted shadow-inner',
       ].join(' ')}
       data-board-cell
@@ -89,7 +89,7 @@ const BoardCellButton = memo(function BoardCellButton({
       <span
         className={[
           'pointer-events-none absolute inset-2 rounded-full border',
-          isOn ? 'border-white/50 bg-white/20' : 'border-lab-line/70 bg-black/20',
+          isOn ? 'lab-cell-glow border-white/50 bg-white/20' : 'border-lab-line/70 bg-black/20',
         ].join(' ')}
       />
     </button>

@@ -30,3 +30,15 @@ select {
   color: #07100f;
   background: #78f26d;
 }
+
+/* Colorblind mode: replace green (hard to distinguish) with cyan */
+[data-color-blind="true"] .lab-cell-on {
+  border-color: #3ee7d6;
+  background-color: #3ee7d6;
+  box-shadow: 0 0 20px rgb(62 231 214 / 0.45);
+}
+
+[data-color-blind="true"] .lab-cell-on .lab-cell-glow {
+  border-color: rgb(255 255 255 / 0.5);
+  background-color: rgb(255 255 255 / 0.2);
+}

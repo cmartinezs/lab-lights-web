@@ -4,6 +4,7 @@ import { formatGameTime } from './formatGameTime';
 
 type ResultPanelProps = {
   session: ClassicGameSession;
+  defaultInitials?: string;
   onNewGame: () => void;
   onSaveResult: (initials: string) => void;
   onRetry: () => void;
@@ -12,8 +13,8 @@ type ResultPanelProps = {
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-export function ResultPanel({ session, onNewGame, onSaveResult, onRetry, saved }: ResultPanelProps) {
-  const [initials, setInitials] = useState(['L', 'A', 'B']);
+export function ResultPanel({ session, defaultInitials = 'LAB', onNewGame, onSaveResult, onRetry, saved }: ResultPanelProps) {
+  const [initials, setInitials] = useState(() => defaultInitials.padEnd(3, 'A').slice(0, 3).toUpperCase().split(''));
   const [selectedSlot, setSelectedSlot] = useState(0);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
 
