@@ -86,7 +86,7 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
     saveClassicResult(session, initials);
     setSavedResultSeed(session.seed);
     setResults(loadClassicResults());
-    setProfile(recordClassicWin({ score: session.score, elapsedSeconds: session.elapsedSeconds }));
+    setProfile(recordClassicWin({ score: session.score, elapsedSeconds: session.elapsedMilliseconds / 1000 }));
   }, [session, savedResultSeed]);
 
   return (
