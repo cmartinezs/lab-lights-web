@@ -96,6 +96,15 @@ export function IconUndo(props: IconProps) {
   );
 }
 
+export function IconContrast(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a10 10 0 0 1 0 20V2z" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
 export function IconInfo(props: IconProps) {
   return (
     <Svg {...props}>

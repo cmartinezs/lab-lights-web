@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LabPanel } from '../../../shared/ui/components/LabPanel';
-import { IconRefresh } from '../../../shared/ui/nano/Icon';
+import { IconContrast, IconRefresh } from '../../../shared/ui/nano/Icon';
 import {
   applyClassicMove,
+  invertClassicGame,
   restartClassicGame,
   startClassicGame,
   startClassicGameWithSeed,
@@ -67,6 +68,11 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
     setSavedResultSeed(null);
   }, []);
 
+  const handleInvert = useCallback(() => {
+    setSession((currentSession) => invertClassicGame(currentSession));
+    setSavedResultSeed(null);
+  }, []);
+
   const handleNewGame = useCallback(() => {
     const nextSeed = createUnplayedClassicSeed();
 
@@ -94,29 +100,41 @@ export function ClassicGamePage({ onNavigate }: ClassicGamePageProps) {
     <main className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:px-8">
       <section className="flex flex-col items-center gap-4">
         {/* Header */}
-        <div className="flex w-full max-w-2xl items-center gap-3">
-          <button
-            aria-expanded={isModeVisible}
-            aria-label={isModeVisible ? 'Ocultar info del modo' : 'Ver info del modo'}
-            className="inline-flex min-h-9 items-center rounded-full border border-lab-green/50 bg-lab-green/10 px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-lab-green transition hover:bg-lab-green/20 focus:outline-none focus:ring-2 focus:ring-lab-green focus:ring-offset-2 focus:ring-offset-lab-bg"
-            type="button"
-            onClick={() => setIsModeVisible((v) => !v)}
-          >
-            R2 · Classic 3×3
-          </button>
-
-          <h1 className="min-w-0 flex-1 truncate font-display text-xl font-black text-lab-text sm:text-2xl">
+        <div className="w-full max-w-2xl space-y-2">
+          <h1 className="font-display text-2xl font-black text-lab-text sm:text-3xl">
             Luces del Laboratorio
           </h1>
+          <div className="flex items-center gap-2">
+            <button
+              aria-expanded={isModeVisible}
+              aria-label={isModeVisible ? 'Ocultar info del modo' : 'Ver info del modo'}
+              className="inline-flex min-h-8 items-center rounded-full border border-lab-green/50 bg-lab-green/10 px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-lab-green transition hover:bg-lab-green/20 focus:outline-none focus:ring-2 focus:ring-lab-green focus:ring-offset-2 focus:ring-offset-lab-bg"
+              type="button"
+              onClick={() => setIsModeVisible((v) => !v)}
+            >
+              R2 · Classic 3×3
+            </button>
 
-          <button
-            aria-label="Reiniciar tablero"
-            className="flex min-h-9 min-w-9 items-center justify-center rounded-md border border-lab-line bg-lab-panelStrong text-lab-muted transition hover:border-lab-cyan hover:text-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
-            type="button"
-            onClick={handleRetry}
-          >
-            <IconRefresh size={16} />
-          </button>
+            <div className="flex-1" />
+
+            <button
+              aria-label="Invertir luces"
+              className="flex min-h-9 min-w-9 items-center justify-center rounded-md border border-lab-line bg-lab-panelStrong text-lab-muted transition hover:border-lab-amber hover:text-lab-amber focus:outline-none focus:ring-2 focus:ring-lab-amber focus:ring-offset-2 focus:ring-offset-lab-bg"
+              type="button"
+              onClick={handleInvert}
+            >
+              <IconContrast size={16} />
+            </button>
+
+            <button
+              aria-label="Reiniciar tablero"
+              className="flex min-h-9 min-w-9 items-center justify-center rounded-md border border-lab-line bg-lab-panelStrong text-lab-muted transition hover:border-lab-cyan hover:text-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+              type="button"
+              onClick={handleRetry}
+            >
+              <IconRefresh size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Mode info — only shown when badge is pressed */}

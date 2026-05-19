@@ -1,6 +1,7 @@
 import {
   countLitCells,
   createClassicBoardFromSeed,
+  invertBoard,
   isVictory,
   toggleCellAndAdjacent,
   type Board,
@@ -75,6 +76,18 @@ export function tickClassicGame(session: ClassicGameSession, now = Date.now()): 
 
 export function restartClassicGame(session: ClassicGameSession): ClassicGameSession {
   return startClassicGame(session.seed);
+}
+
+export function invertClassicGame(session: ClassicGameSession): ClassicGameSession {
+  return createSession({
+    board: invertBoard(session.board),
+    seed: session.seed,
+    setupMoves: session.setupMoves,
+    moves: session.moves,
+    elapsedMilliseconds: session.elapsedMilliseconds,
+    startedAt: session.startedAt,
+    finishedAt: null,
+  });
 }
 
 export function startNextClassicGame(): ClassicGameSession {
