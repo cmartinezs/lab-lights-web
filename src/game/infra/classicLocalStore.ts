@@ -67,13 +67,27 @@ export function saveClassicResult(session: ClassicGameSession, initials: string)
     createdAt: new Date().toISOString(),
   };
 
-  globalThis.localStorage?.setItem(resultsKey, JSON.stringify([result, ...results].slice(0, 10)));
+  globalThis.localStorage?.setItem(resultsKey, JSON.stringify(sortClassicResults([result, ...results]).slice(0, 10)));
 
   return result;
 }
 
 export function loadClassicResults(): ClassicResultRecord[] {
-  return parseJsonArray(globalThis.localStorage?.getItem(resultsKey)).filter(isClassicResultRecord);
+  return sortClassicResults(parseJsonArray(globalThis.localStorage?.getItem(resultsKey)).filter(isClassicResultRecord));
+}
+
+export function sortClassicResults(results: ClassicResultRecord[]): ClassicResultRecord[] {
+  return [...results].sort((firstResult, secondResult) => {
+    if (secondResult.score !== firstResult.score) {
+      return secondResult.score - firstResult.score;
+    }
+
+    if (firstResult.elapsedSeconds !== secondResult.elapsedSeconds) {
+      return firstResult.elapsedSeconds - secondResult.elapsedSeconds;
+    }
+
+    return firstResult.moves - secondResult.moves;
+  });
 }
 
 function loadPlayedClassicSeeds(): string[] {

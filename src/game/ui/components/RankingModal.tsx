@@ -1,4 +1,5 @@
 import type { ClassicResultRecord } from '../../infra/classicLocalStore';
+import { formatGameTime } from './formatGameTime';
 
 type RankingModalProps = {
   onClose: () => void;
@@ -37,11 +38,12 @@ export function RankingModal({ onClose, results }: RankingModalProps) {
             {results.map((result, index) => (
               <li
                 key={result.id}
-                className="grid grid-cols-[2rem_3rem_1fr_auto] items-center gap-2 rounded border border-lab-line bg-lab-bg/60 p-2 font-mono text-sm"
+                className="grid grid-cols-[2rem_3rem_1fr_4rem_auto] items-center gap-2 rounded border border-lab-line bg-lab-bg/60 p-2 font-mono text-sm"
               >
                 <span className="text-lab-muted">{index + 1}</span>
                 <span className="font-black text-lab-green">{result.initials}</span>
                 <span className="text-lab-muted">{result.moves} movs</span>
+                <span className="text-lab-muted">{formatGameTime(result.elapsedSeconds * 1000)}</span>
                 <span className="font-black text-lab-text">{result.score}</span>
               </li>
             ))}
