@@ -14,11 +14,10 @@ export const DEFAULT_PROFILE: LocalProfile = {
 
 export function updateProfileWithWin(
   profile: LocalProfile,
-  params: { score: number; elapsedSeconds: number; initials: string },
+  params: { score: number; elapsedSeconds: number },
 ): LocalProfile {
   return {
     ...profile,
-    initials: params.initials,
     gamesRecorded: profile.gamesRecorded + 1,
     bestScore: Math.max(profile.bestScore, params.score),
     bestTimeSeconds:
