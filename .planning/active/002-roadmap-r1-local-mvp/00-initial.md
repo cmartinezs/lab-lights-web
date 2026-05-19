@@ -1,7 +1,7 @@
 # INITIAL: R1 - MVP local
 
 > **Status:** Initial written  
-> [← finished/README.md](../README.md)
+> [← active/README.md](../README.md)
 
 ## Intent
 
@@ -31,3 +31,4 @@ El producto necesita validar diversión, legibilidad y repetición del núcleo L
 ### Open Questions
 
 - ¿R1 debe garantizar solvencia de tableros desde el inicio o solo generación aleatoria simple?
+
