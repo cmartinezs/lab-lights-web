@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react';
+import { createTimeline } from 'animejs';
+import type { Timeline } from 'animejs';
 import {
   IconPlay, IconClock, IconBolt, IconGrid, IconCalendar, IconCog, IconCoin, IconStar,
 } from '../../../shared/ui/nano/Icon';
@@ -6,13 +9,14 @@ import { relTime, fmtDur } from '../../../shared/infra/sessionStore';
 import { getLastUsedInitials } from '../../../profile/application/profileService';
 import { loadGlobalStats } from '../../../game/infra/gameLocalStore';
 import { getBalance } from '../../../economy/infra/walletStore';
+import { canUseMotion } from '../../../shared/motion/createTimeline';
 import type { AppPage, NavParams } from '../App';
 
 type HomePageProps = {
   go: (page: AppPage, params?: NavParams) => void;
 };
 
-// ── Pixel-art: 26×20 top-down lab (2 upper rooms + corridor + main lab) ──────
+// ── Pixel-art: 26×28 top-down lab (2 upper rooms + corridor + main lab + sub-level) ──
 const LAB: Record<string, string> = {
   W: '#1b322f',   // wall
   B: '#122220',   // bench / shelf
@@ -24,19 +28,20 @@ const LAB: Record<string, string> = {
   S: '#7b5ef0',   // screen ON         (glows purple)
   '.': '#081210', // floor
 };
+const NCOLS = 26;
 // prettier-ignore
 const ART = [
   'WWWWWWWWWWWWWWWWWWWWWWWWWW',  //  0  outer top wall
   'WBBaBBBBBBBBWWBBBBBBaBBBBW',  //  1  upper benches (rooms A & B)
-  'WB.sS.....BBWWBB.....sS.BW',  //  2  bench equipment (screens)
+  'WB.sS.....BBWWBB.....sS.BW',  //  2  screens & bench equipment
   'W...........WW...........W',  //  3  room floors
-  'W..C.....C..WW..C.....C..W',  //  4  ceiling lamps — 2 per room
+  'W..C.....C..WW..C.....C..W',  //  4  ceiling lamps
   'W...........WW...........W',  //  5
   'W..TT...TT..WW..TT...TT..W',  //  6  lab tables
   'W..TT...TT..WW..TT...TT..W',  //  7
   'W...........WW...........W',  //  8
-  'WWWWWW..WWWWWWWWWWW..WWWWW',  //  9  horiz wall — doorways at cols 6-7 & 19-20
-  'W............C...........W',  // 10  corridor with centre lamp
+  'WWWWWW..WWWWWWWWWWW..WWWWW',  //  9  horiz wall — doors at cols 6-7 & 19-20
+  'W............C...........W',  // 10  upper corridor with center lamp
   'WWWWWW..WWWWWWWWWWW..WWWWW',  // 11  horiz wall (mirror of row 9)
   'W........................W',  // 12  entering main lab
   'W.......C........C.......W',  // 13  main lab ceiling lamps
@@ -44,17 +49,83 @@ const ART = [
   'W...TTTT.........TTTT....W',  // 15  large tables
   'W...TTTT.........TTTT....W',  // 16
   'W........................W',  // 17
-  'WBBBgBBBBBBBBBBBBBBBBgBBBW', // 18  bottom bench with plants
-  'WWWWWWWWWWWWWWWWWWWWWWWWWW',  // 19  outer bottom wall
+  'W..sBBBBs........sBBBBs..W',  // 18  workstation benches
+  'W..S.S...........S.S.....W',  // 19  active screens
+  'W........................W',  // 20
+  'W.......C........C.......W',  // 21  lower main lab ceiling lamps
+  'WWWWWWWWWWWWW..WWWWWWWWWWW',  // 22  inner lower wall — door at cols 13-14
+  'W............C...........W',  // 23  lower corridor with center lamp
+  'WWWWWWWWWWWWW..WWWWWWWWWWW',  // 24  inner lower wall (mirror)
+  'W...BB.......g.......BB..W',  // 25  storage / sub-lab
+  'WBBBgBBBBBBBBBBBBBBBBgBBBW', // 26  bottom bench with plants
+  'WWWWWWWWWWWWWWWWWWWWWWWWWW',  // 27  outer bottom wall
 ];
-const NCOLS = 26;
+
+// Light path: [col, row] waypoints through corridors & rooms
+const LIGHT_PATH: [number, number][] = [
+  [13, 17],  // start — main lab
+  [5, 16],   // near left tables
+  [20, 16],  // near right tables
+  [13, 20],  // lower main lab
+  [13, 23],  // lower corridor (under lamp)
+  [20, 23],  // traverse corridor right
+  [10, 25],  // storage
+  [13, 23],  // back to corridor
+  [13, 17],  // back to main lab
+  [7, 12],   // approach upper door
+  [7, 10],   // into upper corridor
+  [13, 10],  // corridor center (under lamp)
+  [19, 10],  // corridor right
+  [19, 9],   // room B doorway
+  [22, 4],   // deep room B (near lamp)
+  [16, 2],   // room B corner
+  [19, 9],   // back to room B door
+  [13, 10],  // corridor center
+  [7, 10],   // corridor left
+  [7, 9],    // room A doorway
+  [3, 4],    // deep room A
+  [9, 2],    // room A corner
+  [7, 9],    // back to room A door
+  [7, 10],   // corridor
+  [7, 12],   // exit to main lab
+  [13, 17],  // back to start (loops)
+];
 
 function LabArt() {
+  const lightRef = useRef<HTMLDivElement>(null);
+  const tlRef    = useRef<Timeline | null>(null);
+
+  useEffect(() => {
+    const el = lightRef.current;
+    if (!el || !canUseMotion()) return;
+
+    const nRows = ART.length;
+    const px = (col: number) => `${((col + 0.5) / NCOLS  * 100).toFixed(2)}%`;
+    const py = (row: number) => `${((row + 0.5) / nRows   * 100).toFixed(2)}%`;
+
+    const first = LIGHT_PATH[0];
+    if (first) {
+      el.style.left = px(first[0]);
+      el.style.top  = py(first[1]);
+    }
+
+    const tl = createTimeline({ loop: true, defaults: { ease: 'inOutSine', duration: 950 } });
+    tlRef.current = tl;
+
+    LIGHT_PATH.slice(1).forEach(([col, row]) => {
+      tl.add(el, { left: px(col), top: py(row) });
+    });
+
+    return () => { tl.cancel(); };
+  }, []);
+
   const cells = ART.flatMap((row, r) =>
     row.split('').map((ch, c) => ({ ch, r, c, key: `${r}-${c}` })),
   );
+
   return (
     <div style={{
+      position: 'relative',
       display: 'grid',
       gridTemplateColumns: `repeat(${NCOLS}, 1fr)`,
       width: '100%', aspectRatio: `${NCOLS}/${ART.length}`,
@@ -73,6 +144,21 @@ function LabArt() {
           }}
         />
       ))}
+      {/* Traveling light — absolutely positioned, blends with dark art */}
+      <div
+        ref={lightRef}
+        style={{
+          position: 'absolute',
+          width: '26%',
+          aspectRatio: '1 / 1',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(62,231,214,0.55) 0%, rgba(62,231,214,0.22) 38%, rgba(62,231,214,0.06) 65%, transparent 80%)',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+          mixBlendMode: 'screen',
+          zIndex: 2,
+        }}
+      />
     </div>
   );
 }
@@ -97,9 +183,9 @@ function ActionBtn({
       type="button"
       onClick={onClick}
     >
-      <Icon size={20} />
+      <Icon size={22} />
       <span style={{ lineHeight: 1.1 }}>{label}</span>
-      {sub && <span style={{ fontSize: 7.5, color: 'var(--dim)', letterSpacing: '0.1em' }}>{sub}</span>}
+      {sub && <span style={{ fontSize: 8, color: 'var(--dim)', letterSpacing: '0.1em' }}>{sub}</span>}
     </button>
   );
 }
@@ -251,12 +337,12 @@ export function HomePage({ go }: HomePageProps) {
       <div style={{
         flex: 1, minHeight: 0,
         display: 'grid',
-        gridTemplateColumns: '62px 1fr 62px',
+        gridTemplateColumns: '76px 1fr 76px',
         alignItems: 'center',
-        padding: '0 4px',
+        padding: '0 2px',
       }}>
         {/* Left */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '10px 0' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '8px 0' }}>
           <ActionBtn
             ariaLabel="Jugar Classic 3×3"
             icon={IconPlay}
@@ -281,14 +367,14 @@ export function HomePage({ go }: HomePageProps) {
         </div>
 
         {/* Center: pixel art */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 4px' }}>
           <div style={{ width: '100%' }}>
             <LabArt />
           </div>
         </div>
 
         {/* Right */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '10px 0' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '8px 0' }}>
           <ActionBtn
             icon={IconCalendar}
             label="Daily"

@@ -240,14 +240,14 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
 
       {/* Board */}
       <div
-        className="screen-scroll"
         style={{
           flex: 1, minHeight: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '12px 14px', position: 'relative',
+          padding: '8px 14px', position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ width: '100%', maxWidth: Math.min(360, 60 * n + 24) }}>
+        <div style={{ height: '90%', aspectRatio: '1 / 1', maxWidth: '90%', width: 'auto' }}>
           <GameBoard
             board={session.board}
             disabled={session.status !== 'playing' || paused}
