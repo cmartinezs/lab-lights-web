@@ -24,6 +24,7 @@ La implementación recomendada es:
 | Frontend | React + TypeScript + Vite | Recomendado para el juego principal |
 | Estilos frontend | Tailwind CSS | Sistema base para layout, tokens, responsive, estados y composición visual |
 | Animación frontend | Anime.js | Animaciones declarativas y secuencias puntuales de UI/juego |
+| i18n frontend | react-i18next | Internacionalización de textos de interfaz; locale inicial `es` |
 | Framework alternativo | Next.js | Solo si se requieren SSR, SEO avanzado, rutas públicas de marketing o portal web separado |
 | Backend | Go | API, validación de partidas, economía, rankings y sincronización |
 | Base de datos | Supabase PostgreSQL | Persistencia transaccional, auth, realtime y almacenamiento |
@@ -311,5 +312,6 @@ Una feature se considera terminada cuando:
 - Pasa lint, typecheck, `go test`, revisión estática y e2e aplicables.
 - No introduce deuda técnica sin registrar decisión o tarea.
 - Documenta cambios de contrato, migración o comportamiento visible.
+- Usa claves de locale (`react-i18next`) para todos los textos visibles de UI; ningún texto de interfaz está hardcodeado en componentes.
 
 ---

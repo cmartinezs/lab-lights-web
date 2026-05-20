@@ -167,6 +167,7 @@ Buenas prácticas:
 - Persistir progreso offline en IndexedDB cuando sea necesario; `localStorage` solo para preferencias simples.
 - Manejar accesibilidad: teclado, foco visible, contraste, reducción de animaciones y modo daltónico.
 - Mantener assets de audio/visual optimizados y cargados bajo demanda.
+- Internacionalizar todos los textos visibles con `react-i18next`. Ningún texto de interfaz debe estar hardcodeado en componentes; todos deben referenciarse mediante claves de locale.
 
 Jerarquía de componentes:
 
@@ -287,6 +288,18 @@ Si se adopta Next.js:
 - Precargar solo assets críticos; cargar audio, temas y efectos secundarios bajo demanda.
 - Mantener fallback visual si un asset no carga.
 
+
+---
+
+## Internacionalización (i18n)
+
+- Usar `react-i18next` como librería de i18n.
+- Locale inicial: `es` (español). La arquitectura debe permitir agregar locales adicionales sin modificar componentes.
+- Los archivos de traducciones se organizan por feature bajo `src/shared/i18n/locales/es/`, con un archivo JSON por dominio: `common.json`, `game.json`, `profile.json`, `rankings.json`, `shop.json`, `settings.json`.
+- Ningún texto visible al usuario debe estar hardcodeado en componentes; todos deben usar claves de locale vía el hook `useTranslation`.
+- Los valores dinámicos (puntajes, tiempos, monedas) se formatean con los helpers de `react-i18next` o `Intl`.
+- Los textos de accesibilidad (`aria-label`, `alt`, `title`) también deben usar claves de locale.
+- Evitar importar la instancia `i18n` directamente en componentes; `useTranslation` es la interfaz estándar.
 
 ---
 

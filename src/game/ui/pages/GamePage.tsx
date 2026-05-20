@@ -1,0 +1,276 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+  applyMove, invertGame, restartGame, startGame, tickGame,
+  type GameSession,
+} from '../../application/gameSession';
+import type { CellPosition } from '../../domain/board';
+import {
+  DEFAULT_GAME_CONFIG, createGameConfig, type GameConfig, type GameMode,
+} from '../../domain/gameConfig';
+import {
+  loadCurrentSeed, loadSavedConfig, rememberPlayedSeed,
+  saveConfig,
+} from '../../infra/gameLocalStore';
+import { GameBoard } from '../components/GameBoard';
+import { IconPause, IconPlay, IconX, IconContrast } from '../../../shared/ui/nano/Icon';
+import type { AppPage, NavParams } from '../../../app/ui/App';
+
+export const R3_DEFAULT_SEED = 'r3-classic-3x3';
+
+type GameResultParams = {
+  score: number;
+  moves: number;
+  elapsedSeconds: number;
+  mode: string;
+  size: number;
+  seed: string;
+};
+
+type GamePageProps = {
+  params: NavParams;
+  onWin:  (p: GameResultParams) => void;
+  onLose: (p: GameResultParams) => void;
+  onNavigate: (page: AppPage, params?: NavParams) => void;
+};
+
+function buildSession(navParams: NavParams): GameSession {
+  let config: GameConfig;
+  if (navParams.config && typeof navParams.config === 'object') {
+    config = navParams.config as GameConfig;
+  } else {
+    const mode = (navParams.mode as GameMode | undefined) ?? (loadSavedConfig()?.mode ?? DEFAULT_GAME_CONFIG.mode);
+    const size  = typeof navParams.size === 'number' ? navParams.size : 3;
+    config = createGameConfig(mode === 'classic' || !mode ? 'classic' : mode, { rows: size, columns: size });
+  }
+  const fallbackSeed = config.mode === 'classic' ? R3_DEFAULT_SEED
+    : `${config.mode}-${config.size.rows}x${config.size.columns}-default`;
+  const seed = loadCurrentSeed(config, fallbackSeed);
+  return startGame(config, seed);
+}
+
+export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
+  const [session, setSession] = useState<GameSession>(() => buildSession(params));
+  const [paused, setPaused] = useState(false);
+  const [notified, setNotified] = useState(false);
+
+  useEffect(() => {
+    setSession(buildSession(params));
+    setNotified(false);
+    setPaused(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (session.startedAt === null || session.status !== 'playing') return;
+    const id = window.setInterval(() => setSession((s) => tickGame(s)), 100);
+    return () => window.clearInterval(id);
+  }, [session.startedAt, session.status]);
+
+  useEffect(() => {
+    if (notified) return;
+    if (session.status === 'won') {
+      setNotified(true);
+      const p = toResultParams(session);
+      rememberPlayedSeed(session.config, session.seed);
+      saveConfig(session.config);
+      setTimeout(() => onWin(p), 300);
+    } else if (session.status === 'lost') {
+      setNotified(true);
+      const p = toResultParams(session);
+      setTimeout(() => onLose(p), 300);
+    }
+  }, [session.status, notified, onWin, onLose]);
+
+  const handleCell = useCallback((pos: CellPosition) => {
+    if (paused) return;
+    setSession((cur) => applyMove(cur, pos));
+  }, [paused]);
+
+  const handleInvert = useCallback(() => {
+    setSession((cur) => invertGame(cur));
+  }, []);
+
+  const handleRestart = useCallback(() => {
+    setSession((cur) => restartGame(cur));
+    setNotified(false);
+    setPaused(false);
+  }, []);
+
+  const { config } = session;
+  const n = config.size.rows;
+  const m = config.size.columns;
+  const timeOn  = config.mode === 'time-attack';
+  const movesOn = config.mode === 'move-limit';
+  const baseTime  = timeOn  && config.timeLimit  !== undefined ? config.timeLimit  : 0;
+  const baseMoves = movesOn && config.moveLimit !== undefined ? config.moveLimit : 0;
+  const timeLeft  = timeOn  ? Math.max(0, baseTime  - session.elapsedSeconds) : 0;
+  const movesLeft = movesOn ? Math.max(0, baseMoves - session.moves)          : 0;
+  const lights    = session.litCells;
+  const displayTime = timeOn ? timeLeft : session.elapsedSeconds;
+
+  function fmtSec(s: number) {
+    const mm = Math.floor(s / 60);
+    const ss = s % 60;
+    return `${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
+  }
+
+  const modeLabelMap: Record<string, string> = {
+    classic: 'CLASSIC', 'time-attack': 'TIME ATTACK', 'move-limit': 'MOVE LIMIT', dimensional: 'DIMENSIONAL',
+  };
+  const modeLabel = modeLabelMap[config.mode] ?? config.mode.toUpperCase();
+
+  return (
+    <div className="screen boot-in">
+      {/* HUD top */}
+      <div style={{
+        padding: '12px 14px', borderBottom: '1px solid var(--line-soft)',
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'linear-gradient(180deg, var(--bg) 0%, transparent 100%)',
+        flexShrink: 0,
+      }}>
+        <button
+          aria-label={paused ? 'Reanudar' : 'Pausar'}
+          className="lab-btn lab-btn-ghost"
+          style={{ padding: 8, minWidth: 38, height: 38 }}
+          type="button"
+          onClick={() => setPaused((p) => !p)}
+        >
+          {paused ? <IconPlay size={16} /> : <IconPause size={16} />}
+        </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="lab-kicker lab-kicker-cy">{modeLabel} · {n}×{m}</div>
+          <div className="lab-mono" style={{ fontSize: 10.5, color: 'var(--muted)', letterSpacing: '0.08em', marginTop: 2 }}>
+            SEED #{session.seed.slice(0, 10).toUpperCase()}
+          </div>
+        </div>
+        <button
+          aria-label="Salir"
+          className="lab-btn lab-btn-ghost"
+          style={{ padding: 8, minWidth: 38, height: 38 }}
+          type="button"
+          onClick={() => onNavigate('home')}
+        >
+          <IconX size={16} />
+        </button>
+      </div>
+
+      {/* Stats row */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr 1fr',
+        gap: 6, padding: '10px 14px', flexShrink: 0,
+      }}>
+        <div className={'lab-stat' + (timeOn && timeLeft < 30 ? ' crit' : timeOn && timeLeft < 60 ? ' warn' : '')}>
+          <div className="stat-label">{timeOn ? 'Tiempo' : 'Tiempo'}</div>
+          <div className="stat-value" style={{ fontSize: 16 }}>{fmtSec(displayTime)}</div>
+        </div>
+        <div className={'lab-stat' + (movesOn && movesLeft < 5 ? ' crit' : movesOn && movesLeft < 10 ? ' warn' : '')}>
+          <div className="stat-label">{movesOn ? 'Movs restantes' : 'Movs'}</div>
+          <div className="stat-value" style={{ fontSize: 16 }}>
+            {movesOn ? movesLeft.toString().padStart(2, '0') : session.moves.toString().padStart(2, '0')}
+          </div>
+        </div>
+        <div className="lab-stat">
+          <div className="stat-label">Luces</div>
+          <div className="stat-value" style={{ fontSize: 16 }}>{lights.toString().padStart(2, '0')}</div>
+        </div>
+      </div>
+
+      {/* Time progress bar for time-attack */}
+      {timeOn && (
+        <div style={{ padding: '0 14px', flexShrink: 0 }}>
+          <div className={'lab-pbar' + (timeLeft < baseTime * 0.25 ? ' warn' : '')}>
+            <div style={{ width: `${(timeLeft / baseTime) * 100}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* Board */}
+      <div
+        className="screen-scroll"
+        style={{
+          flex: 1, minHeight: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '12px 14px', position: 'relative',
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: Math.min(360, 60 * n + 24) }}>
+          <GameBoard
+            board={session.board}
+            disabled={session.status !== 'playing' || paused}
+            onCellPress={handleCell}
+          />
+        </div>
+
+        {/* Pause overlay */}
+        {paused && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'rgba(6,16,15,0.85)',
+            display: 'grid', placeItems: 'center',
+            zIndex: 10,
+          }}>
+            <div className="lab-brk" style={{ textAlign: 'center', padding: 24 }}>
+              <div className="lab-kicker lab-kicker-cy">// PAUSA</div>
+              <div className="lab-h1" style={{ fontSize: 22, marginTop: 6, marginBottom: 16 }}>
+                Tablero suspendido
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
+                <button className="lab-btn lab-btn-primary" type="button" onClick={() => setPaused(false)}>
+                  <IconPlay size={14} /> Reanudar
+                </button>
+                <button className="lab-btn" type="button" onClick={handleRestart}>
+                  Reiniciar tablero
+                </button>
+                <button className="lab-btn lab-btn-ghost" type="button" onClick={() => onNavigate('home')}>
+                  Salir al menú
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Power-ups */}
+      <div style={{ padding: '8px 14px 12px', flexShrink: 0 }}>
+        <div className="lab-kicker" style={{ marginBottom: 6 }}>POWER-UPS</div>
+        <div className="lab-tray">
+          <div
+            className="lab-tray-slot has"
+            title="Invertir luces"
+            onClick={session.moves > 0 ? handleInvert : undefined}
+            style={{ cursor: session.moves > 0 ? 'pointer' : 'not-allowed', opacity: session.moves > 0 ? 1 : 0.4 }}
+          >
+            <IconContrast size={18} style={{ color: 'var(--cyan)' }} />
+          </div>
+          <div className="lab-tray-slot has">
+            <IconPause size={18} style={{ color: 'var(--amber)' }} />
+            <span className="qty">x2</span>
+          </div>
+          {[1,2,3].map((i) => <div key={i} className="lab-tray-slot" />)}
+        </div>
+      </div>
+
+      {/* Score preview at bottom */}
+      <div style={{ padding: '4px 14px 8px', flexShrink: 0, borderTop: '1px solid var(--line-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="lab-mono" style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: '0.14em' }}>
+          PUNTAJE EST.
+        </div>
+        <div className="lab-mono" style={{ fontSize: 14, color: 'var(--cyan)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+          {session.score.toLocaleString('es')}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function toResultParams(session: GameSession): GameResultParams {
+  return {
+    score:          session.score,
+    moves:          session.moves,
+    elapsedSeconds: session.elapsedSeconds,
+    mode:           session.config.mode,
+    size:           session.config.size.rows,
+    seed:           session.seed,
+  };
+}

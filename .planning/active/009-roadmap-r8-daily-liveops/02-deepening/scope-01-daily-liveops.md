@@ -13,8 +13,8 @@ Implementar Daily Challenge online reproducible, rankings recurrentes y live ops
 |---|---|---|---|---|
 | 1 | Definir seed diaria y estado competitivo por usuario/fecha | GENERATE-DOCUMENT | PENDING | backend/domain |
 | 2 | Implementar ranking diario y vista semanal | GENERATE-DOCUMENT | PENDING | proyecciones ranking |
-| 3 | Implementar pantalla Daily y estados de elegibilidad | GENERATE-DOCUMENT | PENDING | frontend Daily |
-| 4 | Implementar racha diaria y recompensas por Daily | GENERATE-DOCUMENT | PENDING | rewards |
+| 3 | Implementar pantalla Daily y estados de elegibilidad (usar claves i18n) | GENERATE-DOCUMENT | PENDING | frontend Daily |
+| 4 | Implementar racha diaria y recompensas por Daily (usar claves i18n en mensajes y etiquetas) | GENERATE-DOCUMENT | PENDING | rewards |
 | 5 | Agregar temporadas ligeras con insignias/cosméticos | EXPAND-ELEMENT | PENDING | live ops |
 | 6 | Agregar configuración remota para parámetros no críticos | GENERATE-DOCUMENT | PENDING | config remota |
 | 7 | Agregar métricas de participación y fallos | GENERATE-DOCUMENT | PENDING | monitoring |

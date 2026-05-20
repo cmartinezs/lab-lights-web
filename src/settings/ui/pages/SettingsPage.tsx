@@ -1,53 +1,47 @@
 import { useState } from 'react';
 import { getSettings, updateSettings } from '../../application/settingsService';
-import { LabPanel } from '../../../shared/ui/components/LabPanel';
+import { ScreenHeader } from '../../../shared/ui/components/ScreenHeader';
 import type { LocalSettings } from '../../domain/settings';
+import type { AppPage, NavParams } from '../../../app/ui/App';
 
 type SettingsPageProps = {
-  onBack: () => void;
+  go: (page: AppPage, params?: NavParams) => void;
+  back: () => void;
 };
 
-export function SettingsPage({ onBack }: SettingsPageProps) {
+export function SettingsPage({ back }: SettingsPageProps) {
   const [settings, setSettings] = useState<LocalSettings>(() => getSettings());
 
   function handleToggle(key: keyof LocalSettings) {
-    setSettings((current) => updateSettings({ [key]: !current[key] }));
+    setSettings(() => updateSettings({ [key]: !settings[key] }));
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <button
-          className="font-mono text-sm text-lab-muted transition hover:text-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan"
-          onClick={onBack}
-          type="button"
-        >
-          ← Volver
-        </button>
-      </div>
+    <div className="screen boot-in" style={{ display: 'flex', flexDirection: 'column' }}>
+      <ScreenHeader
+        kicker="// CONFIG"
+        title="Preferencias"
+        onBack={back}
+      />
 
-      <LabPanel className="space-y-6">
-        <div>
-          <p className="font-mono text-xs uppercase tracking-widest text-lab-muted">Configuración</p>
-          <h1 className="mt-2 font-display text-3xl font-black text-lab-text">Preferencias</h1>
-        </div>
-
-        <div className="space-y-3">
+      <div className="screen-scroll" style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="lab-panel" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="lab-kicker" style={{ marginBottom: 4 }}>VISUAL</div>
           <SettingToggle
-            description="Desactiva animaciones de tablero y transiciones. Recomendado si las animaciones causan molestias."
+            description="Desactiva animaciones de tablero y transiciones."
             enabled={settings.reducedMotion}
             label="Reducir animaciones"
             onToggle={() => handleToggle('reducedMotion')}
           />
           <SettingToggle
-            description="Cambia el color de las celdas activas a cian para mejorar la distinción sin depender del verde."
+            description="Cambia el color de las celdas activas para mejorar la distinción sin depender del verde."
             enabled={settings.colorBlind}
             label="Modo daltónico"
             onToggle={() => handleToggle('colorBlind')}
           />
         </div>
-      </LabPanel>
-    </main>
+      </div>
+    </div>
   );
 }
 
@@ -60,29 +54,19 @@ type SettingToggleProps = {
 
 function SettingToggle({ label, description, enabled, onToggle }: SettingToggleProps) {
   return (
-    <div className="flex items-start gap-4 rounded-panel border border-lab-line bg-lab-bg/60 p-4">
-      <div className="min-w-0 flex-1">
-        <p className="font-mono text-sm font-bold text-lab-text">{label}</p>
-        <p className="mt-0.5 text-xs leading-5 text-lab-muted">{description}</p>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '10px 0', borderBottom: '1px solid var(--line-soft)' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="lab-mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{label}</div>
+        <div className="lab-label" style={{ color: 'var(--muted)', marginTop: 3 }}>{description}</div>
       </div>
       <button
         aria-checked={enabled}
         aria-label={label}
-        className={[
-          'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg',
-          enabled ? 'border-lab-cyan bg-lab-cyan' : 'border-lab-line bg-lab-panelStrong',
-        ].join(' ')}
+        className={'lab-toggle' + (enabled ? ' on' : '')}
         role="switch"
         type="button"
         onClick={onToggle}
-      >
-        <span
-          className={[
-            'pointer-events-none inline-block h-4 w-4 translate-y-0 rounded-full bg-lab-bg shadow transition',
-            enabled ? 'translate-x-5' : 'translate-x-0.5',
-          ].join(' ')}
-        />
-      </button>
+      />
     </div>
   );
 }

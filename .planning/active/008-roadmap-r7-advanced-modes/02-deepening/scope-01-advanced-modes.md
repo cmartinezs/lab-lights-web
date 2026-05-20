@@ -11,11 +11,11 @@ Implementar modos avanzados con reglas extensibles, eventos registrados y feedba
 
 | # | Task | Workflow | Status | Output |
 |---|---|---|---|---|
-| 1 | Implementar Blind con conteo y power-ups específicos | GENERATE-DOCUMENT | PENDING | regla/UI Blind |
-| 2 | Implementar Mirror con ejes horizontal, vertical y ambos | GENERATE-DOCUMENT | PENDING | regla/UI Mirror |
-| 3 | Implementar Chaos con perturbaciones distinguibles | GENERATE-DOCUMENT | PENDING | regla/UI Chaos |
-| 4 | Implementar Chain Reaction con animación de cadena | GENERATE-DOCUMENT | PENDING | regla/UI Chain |
-| 5 | Implementar Puzzle practice con banco inicial reducido | GENERATE-DOCUMENT | PENDING | puzzles iniciales |
+| 1 | Implementar Blind con conteo y power-ups específicos (usar claves i18n en nombres, descripciones y tutorial) | GENERATE-DOCUMENT | PENDING | regla/UI Blind |
+| 2 | Implementar Mirror con ejes horizontal, vertical y ambos (usar claves i18n) | GENERATE-DOCUMENT | PENDING | regla/UI Mirror |
+| 3 | Implementar Chaos con perturbaciones distinguibles (usar claves i18n) | GENERATE-DOCUMENT | PENDING | regla/UI Chaos |
+| 4 | Implementar Chain Reaction con animación de cadena (usar claves i18n) | GENERATE-DOCUMENT | PENDING | regla/UI Chain |
+| 5 | Implementar Puzzle practice con banco inicial reducido (usar claves i18n) | GENERATE-DOCUMENT | PENDING | puzzles iniciales |
 | 6 | Separar rankings locales por modo avanzado | EXPAND-ELEMENT | PENDING | ranking local |
 | 7 | Registrar eventos de sistema vs jugador para replay/validación | EXPAND-ELEMENT | PENDING | modelo de eventos |
 | 8 | Agregar tests de reglas, eventos y paridad cuando aplique | GENERATE-DOCUMENT | PENDING | tests |

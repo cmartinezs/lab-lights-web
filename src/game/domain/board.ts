@@ -20,18 +20,13 @@ export type Board = {
   cells: BoardCell[];
 };
 
-const CLASSIC_SIZE: BoardSize = {
-  rows: 3,
-  columns: 3,
-};
-
-export function createEmptyClassicBoard(): Board {
-  return createBoard(CLASSIC_SIZE, () => 'off');
+export function createEmptyBoard(size: BoardSize): Board {
+  return createBoard(size, () => 'off');
 }
 
-export function createClassicBoardFromSeed(seed: string): { board: Board; setupMoves: CellPosition[] } {
-  const setupMoves = createSeededSetupMoves(seed, CLASSIC_SIZE);
-  const board = setupMoves.reduce((currentBoard, position) => toggleCellAndAdjacent(currentBoard, position), createEmptyClassicBoard());
+export function createBoardFromSeed(seed: string, size: BoardSize): { board: Board; setupMoves: CellPosition[] } {
+  const setupMoves = createSeededSetupMoves(seed, size);
+  const board = setupMoves.reduce((currentBoard, position) => toggleCellAndAdjacent(currentBoard, position), createEmptyBoard(size));
 
   return { board, setupMoves };
 }

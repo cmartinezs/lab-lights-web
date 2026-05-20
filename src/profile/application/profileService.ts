@@ -18,7 +18,7 @@ export function getLastUsedInitials(): string {
   return loadLastInitials();
 }
 
-export function recordClassicWin(
+export function recordWin(
   initials: string,
   params: { score: number; elapsedSeconds: number },
 ): LocalProfile {

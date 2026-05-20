@@ -14,8 +14,10 @@
   },
   "dependencies": {
     "animejs": "^4.1.0",
+    "i18next": "^26.2.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-i18next": "^17.0.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

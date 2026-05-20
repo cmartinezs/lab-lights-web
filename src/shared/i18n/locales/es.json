@@ -1,0 +1,32 @@
+{
+  "mode": {
+    "classic": "Classic 3×3",
+    "dimensional": "Dimensional",
+    "timeAttack": "Time Attack",
+    "moveLimit": "Move Limit",
+    "description": {
+      "classic": "Activa una sala para invertirla junto con sus adyacentes ortogonales. La partida termina cuando todas quedan apagadas.",
+      "dimensional": "Las mismas reglas que Classic en un tablero de tamaño configurable.",
+      "timeAttack": "Apaga el laboratorio antes de que se agote el tiempo. El tiempo disponible depende del tamaño del tablero.",
+      "moveLimit": "Apaga el laboratorio dentro del límite de movimientos. El presupuesto de movimientos depende del tamaño del tablero."
+    }
+  },
+  "setup": {
+    "title": "Seleccionar modo",
+    "boardSize": "Tamaño del tablero",
+    "timeLimitInfo": "Tiempo límite: {{seconds}} s",
+    "moveLimitInfo": "Límite: {{moves}} movs",
+    "start": "Iniciar partida"
+  },
+  "game": {
+    "stats": {
+      "remainingTime": "Tiempo rest.",
+      "remainingMoves": "Movs rest."
+    },
+    "lost": {
+      "timeTitle": "Tiempo agotado",
+      "movesTitle": "Sin movimientos",
+      "label": "Resultado"
+    }
+  }
+}

@@ -17,7 +17,7 @@ Completar sistemas finales, endurecer operación y preparar una versión estable
 | 4 | Completar tienda de power-ups, mejoras y temas | EXPAND-ELEMENT | PENDING | tienda completa |
 | 5 | Completar rankings por modo/configuración | EXPAND-ELEMENT | PENDING | rankings completos |
 | 6 | Implementar replays o solución post-partida para práctica/puzzle | GENERATE-DOCUMENT | PENDING | replay/solución |
-| 7 | Consolidar accesibilidad y polish mobile/desktop | EXPAND-ELEMENT | PENDING | UI final |
+| 7 | Consolidar accesibilidad, i18n completa y polish mobile/desktop | EXPAND-ELEMENT | PENDING | UI final |
 | 8 | Iterar balance de puntuación, monedas, costos y penalizaciones | EXPAND-ELEMENT | PENDING | balance |
 | 9 | Completar observabilidad, backups, restore y rollback | GENERATE-DOCUMENT | PENDING | operación |
 | 10 | Ejecutar e2e completo y quality gates | REVIEW-COHERENCE | PENDING | reporte de calidad |
@@ -29,6 +29,7 @@ Completar sistemas finales, endurecer operación y preparar una versión estable
 - [ ] Producto soporta uso recurrente y competitivo.
 - [ ] Sistema opera en producción con monitoreo, rollback y datos auditables.
 - [ ] Experiencia visual y motion están pulidos en mobile y desktop.
+- [ ] Todos los textos de UI usan claves i18n; ningún string visible está hardcodeado en componentes.
 - [ ] Reglas competitivas son reproducibles y defendibles.
 - [ ] `TRACEABILITY.md` actualizado con términos nuevos.
 
@@ -42,5 +43,5 @@ Completar sistemas finales, endurecer operación y preparar una versión estable
 
 | # | Description | Deferred To | Status |
 |---|---|---|
-| Features sociales avanzadas | Futuro post-1.0 | PENDING |
+| Sistema de referidos, amigos y desafíos | R9 Scope 02 | PENDING |
 

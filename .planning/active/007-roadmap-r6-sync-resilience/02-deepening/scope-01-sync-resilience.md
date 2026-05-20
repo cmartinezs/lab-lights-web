@@ -12,7 +12,7 @@ Implementar cola offline, sincronización posterior, recompensas idempotentes y 
 | # | Task | Workflow | Status | Output |
 |---|---|---|---|---|
 | 1 | Diseñar cola offline para partidas y comandos sincronizables | GENERATE-DOCUMENT | PENDING | modelo frontend |
-| 2 | Implementar estados offline, sincronizando, fallido, rechazado y desactualizado | GENERATE-DOCUMENT | PENDING | UI de estados |
+| 2 | Implementar estados offline, sincronizando, fallido, rechazado y desactualizado (usar claves i18n en mensajes de estado) | GENERATE-DOCUMENT | PENDING | UI de estados |
 | 3 | Implementar `command_id` e idempotencia backend | EXPAND-ELEMENT | PENDING | comandos backend |
 | 4 | Implementar ledger online y `reward_claims` idempotentes | GENERATE-DOCUMENT | PENDING | data/backend |
 | 5 | Agregar recompensas online iniciales | GENERATE-DOCUMENT | PENDING | rewards |

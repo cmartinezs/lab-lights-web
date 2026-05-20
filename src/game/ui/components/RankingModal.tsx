@@ -1,9 +1,9 @@
-import type { ClassicResultRecord } from '../../infra/classicLocalStore';
+import type { GameResultRecord } from '../../infra/gameLocalStore';
 import { formatGameTime } from './formatGameTime';
 
 type RankingModalProps = {
   onClose: () => void;
-  results: ClassicResultRecord[];
+  results: GameResultRecord[];
 };
 
 export function RankingModal({ onClose, results }: RankingModalProps) {

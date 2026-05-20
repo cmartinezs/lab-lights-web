@@ -12,10 +12,10 @@ Implementar economía local con monedas, power-ups básicos, continuaciones y el
 | # | Task | Workflow | Status | Output |
 |---|---|---|---|---|
 | 1 | Definir reglas locales de monedas por victoria, derrota y récord | GENERATE-DOCUMENT | PENDING | dominio de economía local |
-| 2 | Crear tienda local inicial | GENERATE-DOCUMENT | PENDING | `src/shop/` |
-| 3 | Implementar `+30s`, `+5 movimientos`, `Deshacer` y `Reordenar luces` | GENERATE-DOCUMENT | PENDING | power-ups básicos |
-| 4 | Implementar continuación local con penalización | GENERATE-DOCUMENT | PENDING | flujo de continuación |
-| 5 | Mostrar marcas de ayudas en resultado | EXPAND-ELEMENT | PENDING | UI de resultado |
+| 2 | Crear tienda local inicial (usar claves i18n) | GENERATE-DOCUMENT | PENDING | `src/shop/` |
+| 3 | Implementar `+30s`, `+5 movimientos`, `Deshacer` y `Reordenar luces` (usar claves i18n en nombres y descripciones) | GENERATE-DOCUMENT | PENDING | power-ups básicos |
+| 4 | Implementar continuación local con penalización (usar claves i18n) | GENERATE-DOCUMENT | PENDING | flujo de continuación |
+| 5 | Mostrar marcas de ayudas en resultado (usar claves i18n) | EXPAND-ELEMENT | PENDING | UI de resultado |
 | 6 | Implementar mejoras permanentes iniciales | GENERATE-DOCUMENT | PENDING | perfil/mejoras |
 | 7 | Probar cobros, gastos, penalizaciones y no duplicación | GENERATE-DOCUMENT | PENDING | tests |
 | 8 | Revisar coherencia y trazabilidad | REVIEW-COHERENCE / UPDATE-TRACEABILITY | PENDING | revisión y `TRACEABILITY.md` |

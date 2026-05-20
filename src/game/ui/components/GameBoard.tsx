@@ -13,11 +13,7 @@ export function GameBoard({ board, disabled = false, onCellPress }: GameBoardPro
 
   useEffect(() => {
     const cells = boardRef.current?.querySelectorAll('[data-board-cell]');
-
-    if (!cells?.length) {
-      return;
-    }
-
+    if (!cells?.length) return;
     animateIfAllowed(cells, {
       opacity: [0.45, 1],
       scale: [0.94, 1],
@@ -27,16 +23,32 @@ export function GameBoard({ board, disabled = false, onCellPress }: GameBoardPro
     });
   }, [board.size.columns, board.size.rows]);
 
+  const gap = board.size.columns > 6 ? 4 : 6;
+
   return (
     <div
       ref={boardRef}
-      aria-label="Tablero Classic 3 por 3"
-      className="grid aspect-square w-full max-w-[min(84vw,28rem)] gap-2 rounded-panel border border-lab-line bg-black/25 p-3 shadow-glow"
+      aria-label={`Tablero ${board.size.rows} por ${board.size.columns}`}
       role="grid"
-      style={{ gridTemplateColumns: `repeat(${board.size.columns}, minmax(0, 1fr))` }}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${board.size.columns}, minmax(0, 1fr))`,
+        gap,
+        aspectRatio: '1',
+        width: '100%',
+        padding: 8,
+        background: 'rgba(0,0,0,0.18)',
+        borderRadius: 10,
+        border: '1px solid var(--line)',
+      }}
     >
       {board.cells.map((cell) => (
-        <BoardCellButton key={cell.id} cell={cell} disabled={disabled} onCellPress={onCellPress} />
+        <BoardCellButton
+          key={cell.id}
+          cell={cell}
+          disabled={disabled}
+          onCellPress={onCellPress}
+        />
       ))}
     </div>
   );
@@ -70,28 +82,16 @@ const BoardCellButton = memo(function BoardCellButton({
       ref={cellRef}
       aria-label={`Sala ${cell.row + 1},${cell.column + 1}: ${isOn ? 'encendida' : 'apagada'}`}
       aria-pressed={isOn}
-      className={[
-        'relative aspect-square rounded-md border font-mono text-sm font-black transition',
-        'focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg',
-        disabled ? 'cursor-default opacity-80' : 'cursor-pointer hover:-translate-y-0.5',
-        isOn
-          ? 'lab-cell-on border-lab-green bg-lab-green text-lab-bg shadow-light'
-          : 'border-lab-line bg-lab-panelStrong text-lab-muted shadow-inner',
-      ].join(' ')}
+      className={'lab-cell' + (isOn ? ' on' : '')}
       data-board-cell
       data-testid={`cell-${cell.row}-${cell.column}`}
       disabled={disabled}
-      onClick={handlePress}
       role="gridcell"
+      style={{ aspectRatio: '1', cursor: disabled ? 'default' : 'pointer' }}
       type="button"
+      onClick={handlePress}
     >
-      <span className="relative z-10">{cell.row + 1}{cell.column + 1}</span>
-      <span
-        className={[
-          'pointer-events-none absolute inset-2 rounded-full border',
-          isOn ? 'lab-cell-glow border-white/50 bg-white/20' : 'border-lab-line/70 bg-black/20',
-        ].join(' ')}
-      />
+      <span className="cell-dot" />
     </button>
   );
 });

@@ -8,12 +8,15 @@
 | # | Scope | SDLC Phase(s) | Depends On | Status |
 |---|---|---|---|---|
 | 01 | Endgame completion | R / S / M / V / T / B / O / N / F | R8 | PENDING |
+| 02 | Social & referral system | R / S / M / V / T | R5 (referral_code) | PENDING |
 
 ## Dependency Map
 
 ```mermaid
 flowchart LR
     R8[R8: Daily y live ops] --> S01[Scope 01: Endgame completion]
+    R5[R5: Online core] --> S02[Scope 02: Social & referral]
+    S01 --> S02
 ```
 
 ## Impact per SDLC Phase

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ClassicGameSession } from '../../application/classicGame';
+import { useTranslation } from 'react-i18next';
+import type { GameSession } from '../../application/gameSession';
 import { IconCheck, IconPlay, IconUndo } from '../../../shared/ui/nano/Icon';
 import { formatGameTime } from './formatGameTime';
 
 type ResultPanelProps = {
-  session: ClassicGameSession;
+  session: GameSession;
   defaultInitials?: string;
   onNewGame: () => void;
   onSaveResult: (initials: string) => void;
@@ -15,6 +16,7 @@ type ResultPanelProps = {
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 export function ResultPanel({ session, defaultInitials = 'LAB', onNewGame, onSaveResult, onRetry, saved }: ResultPanelProps) {
+  const { t } = useTranslation();
   const [initials, setInitials] = useState(() => defaultInitials.padEnd(3, 'A').slice(0, 3).toUpperCase().split(''));
   const [selectedSlot, setSelectedSlot] = useState(0);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
@@ -25,8 +27,57 @@ export function ResultPanel({ session, defaultInitials = 'LAB', onNewGame, onSav
     }
   }, [session.status]);
 
-  if (session.status !== 'won') {
+  if (session.status === 'playing') {
     return null;
+  }
+
+  if (session.status === 'lost') {
+    const title =
+      session.config.mode === 'time-attack'
+        ? t('game.lost.timeTitle')
+        : t('game.lost.movesTitle');
+
+    return (
+      <div className="fixed inset-0 z-20 grid place-items-center overflow-y-auto bg-lab-bg/80 px-4 py-4 backdrop-blur-sm sm:py-6" role="presentation">
+        <section
+          aria-labelledby="result-title"
+          aria-live="polite"
+          className="w-full max-w-lg rounded-panel border border-lab-red/60 bg-lab-panel p-4 shadow-[0_0_42px_rgb(255_100_100_/_0.24)] sm:p-5"
+          role="dialog"
+        >
+          <p className="font-mono text-xs uppercase tracking-widest text-lab-red">{t('game.lost.label')}</p>
+          <h2 id="result-title" className="mt-2 font-display text-3xl font-black text-lab-text">
+            {title}
+          </h2>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <ResultMetric label="Movs" value={session.moves} />
+            <ResultMetric label="Tiempo" value={formatGameTime(session.elapsedMilliseconds)} />
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <button
+              aria-label="Nueva partida"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-lab-cyan/60 bg-lab-cyan/10 px-4 font-mono text-sm font-black uppercase text-lab-cyan transition hover:bg-lab-cyan/20 focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+              type="button"
+              onClick={onNewGame}
+            >
+              <IconPlay size={16} />
+              <span>Nuevo</span>
+            </button>
+            <button
+              aria-label="Repetir tablero"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-lab-line bg-lab-bg px-4 font-mono text-sm font-black uppercase text-lab-text transition hover:border-lab-cyan focus:outline-none focus:ring-2 focus:ring-lab-cyan focus:ring-offset-2 focus:ring-offset-lab-bg"
+              type="button"
+              onClick={onRetry}
+            >
+              <IconUndo size={16} />
+              <span>Repetir</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
