@@ -1,44 +1,91 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { animate } from 'animejs';
+import { canUseMotion } from '../../../shared/motion/createTimeline';
 
 const BOOT_LINES = [
-  { k: 'PSU-01', label: 'Iniciando suministro eléctrico', ms: 200 },
-  { k: 'MEM-04', label: 'Cargando matriz 3×3', ms: 280 },
-  { k: 'SEED-A', label: 'Generando seed local', ms: 220 },
-  { k: 'I/O-12', label: 'Verificando localStorage', ms: 260 },
-  { k: 'AUD-08', label: 'Sintetizador chiptune listo', ms: 200 },
-  { k: 'NET-00', label: 'Modo local · sin conexión', ms: 240 },
-  { k: 'OPR-LAB', label: 'Operador identificado', ms: 220 },
+  { k: 'PSU-01',  label: 'Iniciando suministro eléctrico', ms: 200 },
+  { k: 'MEM-04',  label: 'Cargando matriz 3×3',            ms: 280 },
+  { k: 'SEED-A',  label: 'Generando seed local',           ms: 220 },
+  { k: 'I/O-12',  label: 'Verificando localStorage',       ms: 260 },
+  { k: 'AUD-08',  label: 'Sintetizador chiptune listo',    ms: 200 },
+  { k: 'NET-00',  label: 'Modo local · sin conexión',      ms: 240 },
+  { k: 'OPR-LAB', label: 'Operador identificado',          ms: 220 },
 ];
+
+// Each item takes 50%–150% of its base duration
+function randDelay(ms: number): number {
+  return Math.round(ms * (0.5 + Math.random()));
+}
 
 type SplashPageProps = { onDone: () => void };
 
 export function SplashPage({ onDone }: SplashPageProps) {
-  const [step, setStep] = useState(0);
+  const [step, setStep]             = useState(0);
+  const [done, setDone]             = useState(false);
+  const [transitioning, setTrans]   = useState(false);
+  const flashRef                    = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (step >= BOOT_LINES.length) {
-      const t = setTimeout(onDone, 480);
-      return () => clearTimeout(t);
+      setDone(true);
+      return;
     }
-    const t = setTimeout(() => setStep((s) => s + 1), BOOT_LINES[step]?.ms ?? 250);
+    const base = BOOT_LINES[step]?.ms ?? 250;
+    const t = setTimeout(() => setStep((s) => s + 1), randDelay(base));
     return () => clearTimeout(t);
-  }, [step, onDone]);
+  }, [step]);
+
+  function handleTap() {
+    if (!done || transitioning) return;
+    setTrans(true);
+    if (!canUseMotion() || !flashRef.current) {
+      onDone();
+      return;
+    }
+    animate(flashRef.current, {
+      scale:    [0, 5],
+      opacity:  [0, 1],
+      duration: 540,
+      ease:     'outExpo',
+      onComplete: onDone,
+    });
+  }
 
   const progress = step / BOOT_LINES.length;
 
   return (
     <div
       className="screen boot-in"
-      style={{ background: 'var(--bg-deep)', padding: '24px 22px' }}
       role="presentation"
+      style={{
+        background: 'var(--bg-deep)',
+        padding:    '24px 22px',
+        cursor:     done ? 'pointer' : 'default',
+        userSelect: 'none',
+      }}
+      onClick={handleTap}
     >
-      <button
-        aria-label="Saltar introducción"
-        style={{ position: 'absolute', inset: 0, background: 'transparent', border: 0, cursor: 'pointer' }}
-        type="button"
-        onClick={onDone}
+      {/* Light burst — fixed so it escapes any overflow clip */}
+      <div
+        ref={flashRef}
+        style={{
+          position:        'fixed',
+          width:           '100vmax',
+          height:          '100vmax',
+          top:             '50%',
+          left:            '50%',
+          marginLeft:      '-50vmax',
+          marginTop:       '-50vmax',
+          borderRadius:    '50%',
+          background:      'radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(240,255,255,0.98) 8%, rgba(62,231,214,1) 20%, rgba(62,231,214,0.65) 45%, transparent 70%)',
+          zIndex:          999,
+          pointerEvents:   'none',
+          opacity:         0,
+          willChange:      'transform, opacity',
+        }}
       />
 
+      {/* Title */}
       <div style={{ marginTop: 32, position: 'relative', pointerEvents: 'none' }}>
         <div className="lab-kicker lab-kicker-cy">SISTEMA / V2.0 · LAB ARCADE</div>
         <h1 className="lab-h1" style={{ fontSize: 36, lineHeight: 1.02, marginTop: 6 }}>
@@ -50,7 +97,7 @@ export function SplashPage({ onDone }: SplashPageProps) {
         </div>
       </div>
 
-      {/* Mini 3×3 board lighting up */}
+      {/* Mini 3×3 board lights up progressively */}
       <div style={{
         margin: '26px auto',
         width: 180, height: 180,
@@ -66,6 +113,7 @@ export function SplashPage({ onDone }: SplashPageProps) {
         ))}
       </div>
 
+      {/* Boot log */}
       <div className="lab-panel" style={{ padding: 14, pointerEvents: 'none' }}>
         <div className="lab-kicker lab-kicker-cy" style={{ marginBottom: 10 }}>
           Boot Sequence · {Math.round(progress * 100)}%
@@ -88,10 +136,13 @@ export function SplashPage({ onDone }: SplashPageProps) {
         })}
       </div>
 
-      <div style={{ marginTop: 18, textAlign: 'center', pointerEvents: 'none' }}>
-        <div className="lab-mono lab-blink" style={{ color: 'var(--cyan)', fontSize: 10, letterSpacing: '0.2em' }}>
-          █ TOCA PARA CONTINUAR
-        </div>
+      {/* CTA — only visible once all steps complete */}
+      <div style={{ marginTop: 18, textAlign: 'center', pointerEvents: 'none', minHeight: 24 }}>
+        {done && (
+          <div className="lab-mono lab-blink boot-in" style={{ color: 'var(--cyan)', fontSize: 10, letterSpacing: '0.2em' }}>
+            █ TOCA PARA CONTINUAR
+          </div>
+        )}
       </div>
     </div>
   );
