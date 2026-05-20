@@ -7,13 +7,16 @@
 
 | # | Scope | SDLC Phase(s) | Depends On | Status |
 |---|---|---|---|---|
-| 01 | Local economy | R / S / M / V / T | R3 | PENDING |
+| 01 | Local economy | R / S / M / V / T | R3 | DONE |
+| 02 | Board integrity (anti-hacking) | R / S / M / V / T | S01 | PENDING |
 
 ## Dependency Map
 
 ```mermaid
 flowchart LR
     R3[R3: Variantes base] --> S01[Scope 01: Local economy]
+    S01 --> S02[Scope 02: Board integrity]
+    S02 --> R5[R5: Online core]
 ```
 
 ## Impact per SDLC Phase

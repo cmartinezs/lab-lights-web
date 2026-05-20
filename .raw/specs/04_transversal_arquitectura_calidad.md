@@ -259,6 +259,20 @@ Quality gate recomendado:
 - Rate limiting para envío de partidas, login y endpoints de ranking.
 - Sanitizar nombres de usuario e iniciales visibles.
 
+### Integridad de tablero (anti-hacking local)
+
+El frontend implementa una defensa en capas contra manipulación de resultados:
+
+| Capa | Mecanismo | Fase |
+|---|---|---|
+| Arquitectura | React state es fuente de verdad; DOM es solo presentación — manipulación DOM no afecta el estado | R3 (ya implementado) |
+| Replay de movimientos | Al ganar, se reproduce la `moveSequence` desde el seed para verificar que el resultado es alcanzable | R4 Scope 02 |
+| Firma HMAC-SHA256 | Los registros de resultado incluyen una firma sobre `seed + score + moves` usando Web Crypto API | R4 Scope 02 |
+| Plausibilidad temporal | Se valida que el tiempo total / número de movimientos no sea físicamente imposible (`MIN_MS_PER_MOVE = 200`) | R4 Scope 02 |
+| Validación server-side | Backend Go recibe y re-ejecuta la secuencia de movimientos; solo acepta resultados verificados | R5 |
+
+**Principio:** el cliente no puede probar inocencia, pero sí puede hacer que la trampa requiera un esfuerzo desproporcionado. La validación definitiva vive en el backend (R5).
+
 ## Observabilidad
 
 - Logs estructurados en backend.
