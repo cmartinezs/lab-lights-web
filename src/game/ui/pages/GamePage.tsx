@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  applyMove, invertGame, restartGame, startGame, tickGame,
+  applyMove, applyAddTime, applyAddMoves, applyShuffle, consumeUndo,
+  invertGame, restartGame, startGame, tickGame,
   type GameSession,
 } from '../../application/gameSession';
 import type { CellPosition } from '../../domain/board';
@@ -11,8 +12,9 @@ import {
   loadCurrentSeed, loadSavedConfig, rememberPlayedSeed,
   saveConfig,
 } from '../../infra/gameLocalStore';
+import { getBalance, spendCoins } from '../../../economy/infra/walletStore';
 import { GameBoard } from '../components/GameBoard';
-import { IconPause, IconPlay, IconX, IconContrast } from '../../../shared/ui/nano/Icon';
+import { IconPause, IconPlay, IconX, IconContrast, IconUndo, IconShuffle, IconClock, IconBolt, IconCoin } from '../../../shared/ui/nano/Icon';
 import type { AppPage, NavParams } from '../../../app/ui/App';
 
 export const R3_DEFAULT_SEED = 'r3-classic-3x3';
@@ -24,6 +26,8 @@ type GameResultParams = {
   mode: string;
   size: number;
   seed: string;
+  powerUpsUsed: string[];
+  continued: boolean;
 };
 
 type GamePageProps = {
@@ -45,18 +49,24 @@ function buildSession(navParams: NavParams): GameSession {
   const fallbackSeed = config.mode === 'classic' ? R3_DEFAULT_SEED
     : `${config.mode}-${config.size.rows}x${config.size.columns}-default`;
   const seed = loadCurrentSeed(config, fallbackSeed);
-  return startGame(config, seed);
+  const continued = navParams.continued === true;
+  return startGame(config, seed, { continued });
 }
 
 export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
   const [session, setSession] = useState<GameSession>(() => buildSession(params));
   const [paused, setPaused] = useState(false);
   const [notified, setNotified] = useState(false);
+  const [balance, setBalance] = useState(() => getBalance());
+  const snapshotStack = useRef<GameSession[]>([]);
 
   useEffect(() => {
-    setSession(buildSession(params));
+    const s = buildSession(params);
+    setSession(s);
     setNotified(false);
     setPaused(false);
+    snapshotStack.current = [];
+    setBalance(getBalance());
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -83,17 +93,52 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
 
   const handleCell = useCallback((pos: CellPosition) => {
     if (paused) return;
-    setSession((cur) => applyMove(cur, pos));
+    setSession((cur) => {
+      snapshotStack.current = [cur, ...snapshotStack.current].slice(0, 3);
+      return applyMove(cur, pos);
+    });
   }, [paused]);
 
   const handleInvert = useCallback(() => {
     setSession((cur) => invertGame(cur));
   }, []);
 
+  const handleUndo = useCallback(() => {
+    setSession((cur) => {
+      if (cur.undosRemaining <= 0) return cur;
+      const prev = snapshotStack.current[0];
+      if (!prev) return cur;
+      snapshotStack.current = snapshotStack.current.slice(1);
+      return consumeUndo({ ...prev, undosRemaining: cur.undosRemaining, powerUpsUsed: cur.powerUpsUsed });
+    });
+  }, []);
+
+  const handleShuffle = useCallback(() => {
+    if (!spendCoins(30)) return;
+    setBalance(getBalance());
+    setSession((cur) => {
+      snapshotStack.current = [];
+      return applyShuffle(cur);
+    });
+  }, []);
+
+  const handleAddTime = useCallback(() => {
+    if (!spendCoins(20)) return;
+    setBalance(getBalance());
+    setSession((cur) => applyAddTime(cur, 30));
+  }, []);
+
+  const handleAddMoves = useCallback(() => {
+    if (!spendCoins(15)) return;
+    setBalance(getBalance());
+    setSession((cur) => applyAddMoves(cur, 5));
+  }, []);
+
   const handleRestart = useCallback(() => {
     setSession((cur) => restartGame(cur));
     setNotified(false);
     setPaused(false);
+    snapshotStack.current = [];
   }, []);
 
   const { config } = session;
@@ -118,6 +163,7 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
     classic: 'CLASSIC', 'time-attack': 'TIME ATTACK', 'move-limit': 'MOVE LIMIT', dimensional: 'DIMENSIONAL',
   };
   const modeLabel = modeLabelMap[config.mode] ?? config.mode.toUpperCase();
+  const canUndo = session.undosRemaining > 0 && snapshotStack.current.length > 0;
 
   return (
     <div className="screen boot-in">
@@ -142,6 +188,13 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
           <div className="lab-mono" style={{ fontSize: 10.5, color: 'var(--muted)', letterSpacing: '0.08em', marginTop: 2 }}>
             SEED #{session.seed.slice(0, 10).toUpperCase()}
           </div>
+        </div>
+        {/* Coin balance */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <IconCoin size={12} style={{ color: 'var(--amber)' }} />
+          <span className="lab-mono" style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            {balance.toLocaleString('es')}
+          </span>
         </div>
         <button
           aria-label="Salir"
@@ -235,6 +288,7 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
       <div style={{ padding: '8px 14px 12px', flexShrink: 0 }}>
         <div className="lab-kicker" style={{ marginBottom: 6 }}>POWER-UPS</div>
         <div className="lab-tray">
+          {/* Invert — always free */}
           <div
             className="lab-tray-slot has"
             title="Invertir luces"
@@ -243,18 +297,69 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
           >
             <IconContrast size={18} style={{ color: 'var(--cyan)' }} />
           </div>
-          <div className="lab-tray-slot has">
-            <IconPause size={18} style={{ color: 'var(--amber)' }} />
-            <span className="qty">x2</span>
+
+          {/* Undo — free, up to 3 */}
+          <div
+            className={'lab-tray-slot' + (canUndo ? ' has' : '')}
+            title={`Deshacer (${session.undosRemaining} restantes)`}
+            onClick={canUndo ? handleUndo : undefined}
+            style={{ cursor: canUndo ? 'pointer' : 'not-allowed', opacity: canUndo ? 1 : 0.4 }}
+          >
+            <IconUndo size={18} style={{ color: 'var(--cyan)' }} />
+            <span className="qty">×{session.undosRemaining}</span>
           </div>
-          {[1,2,3].map((i) => <div key={i} className="lab-tray-slot" />)}
+
+          {/* Shuffle — 30 coins */}
+          <div
+            className={'lab-tray-slot' + (balance >= 30 ? ' has' : '')}
+            title={`Reordenar (30 monedas)`}
+            onClick={balance >= 30 ? handleShuffle : undefined}
+            style={{ cursor: balance >= 30 ? 'pointer' : 'not-allowed', opacity: balance >= 30 ? 1 : 0.4 }}
+          >
+            <IconShuffle size={18} style={{ color: 'var(--amber)' }} />
+            <span className="qty">30</span>
+          </div>
+
+          {/* Add time (time-attack only) or Add moves (move-limit only) */}
+          {timeOn && (
+            <div
+              className={'lab-tray-slot' + (balance >= 20 ? ' has' : '')}
+              title={`+30 segundos (20 monedas)`}
+              onClick={balance >= 20 ? handleAddTime : undefined}
+              style={{ cursor: balance >= 20 ? 'pointer' : 'not-allowed', opacity: balance >= 20 ? 1 : 0.4 }}
+            >
+              <IconClock size={18} style={{ color: 'var(--green)' }} />
+              <span className="qty">20</span>
+            </div>
+          )}
+          {movesOn && (
+            <div
+              className={'lab-tray-slot' + (balance >= 15 ? ' has' : '')}
+              title={`+5 movimientos (15 monedas)`}
+              onClick={balance >= 15 ? handleAddMoves : undefined}
+              style={{ cursor: balance >= 15 ? 'pointer' : 'not-allowed', opacity: balance >= 15 ? 1 : 0.4 }}
+            >
+              <IconBolt size={18} style={{ color: 'var(--green)' }} />
+              <span className="qty">15</span>
+            </div>
+          )}
+
+          {/* Empty filler slots */}
+          {(!timeOn && !movesOn ? [1, 2] : [1]).map((i) => <div key={i} className="lab-tray-slot" />)}
         </div>
       </div>
 
       {/* Score preview at bottom */}
       <div style={{ padding: '4px 14px 8px', flexShrink: 0, borderTop: '1px solid var(--line-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div className="lab-mono" style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: '0.14em' }}>
-          PUNTAJE EST.
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="lab-mono" style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: '0.14em' }}>
+            PUNTAJE EST.
+          </div>
+          {session.continued && (
+            <span className="lab-chip" style={{ fontSize: 8, padding: '1px 5px', color: 'var(--amber)', borderColor: 'var(--amber)', opacity: 0.8 }}>
+              −30%
+            </span>
+          )}
         </div>
         <div className="lab-mono" style={{ fontSize: 14, color: 'var(--cyan)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
           {session.score.toLocaleString('es')}
@@ -272,5 +377,7 @@ function toResultParams(session: GameSession): GameResultParams {
     mode:           session.config.mode,
     size:           session.config.size.rows,
     seed:           session.seed,
+    powerUpsUsed:   session.powerUpsUsed,
+    continued:      session.continued,
   };
 }

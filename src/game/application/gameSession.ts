@@ -12,6 +12,8 @@ import { calculateClassicScore, calculateMoveLimitScore, calculateTimeAttackScor
 
 export type GameStatus = 'playing' | 'won' | 'lost';
 
+export type PowerUpId = 'undo' | 'shuffle' | 'add-time' | 'add-moves';
+
 export type GameSession = {
   config: GameConfig;
   board: Board;
@@ -25,13 +27,42 @@ export type GameSession = {
   status: GameStatus;
   score: number;
   litCells: number;
+  powerUpsUsed: PowerUpId[];
+  continued: boolean;
+  undosRemaining: number;
 };
 
-export function startGame(config: GameConfig, seed?: string): GameSession {
+type SessionInput = {
+  config: GameConfig;
+  board: Board;
+  seed: string;
+  setupMoves: CellPosition[];
+  moves: number;
+  elapsedMilliseconds: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+  powerUpsUsed?: PowerUpId[];
+  continued?: boolean;
+  undosRemaining?: number;
+};
+
+export function startGame(config: GameConfig, seed?: string, opts?: { continued?: boolean }): GameSession {
   const actualSeed = seed ?? createDefaultSeed(config);
   const { board, setupMoves } = createBoardFromSeed(actualSeed, config.size);
 
-  return buildSession({ config, board, seed: actualSeed, setupMoves, moves: 0, elapsedMilliseconds: 0, startedAt: null, finishedAt: null });
+  return buildSession({
+    config,
+    board,
+    seed: actualSeed,
+    setupMoves,
+    moves: 0,
+    elapsedMilliseconds: 0,
+    startedAt: null,
+    finishedAt: null,
+    powerUpsUsed: [],
+    continued: opts?.continued ?? false,
+    undosRemaining: 3,
+  });
 }
 
 export function applyMove(session: GameSession, position: CellPosition, now = Date.now()): GameSession {
@@ -46,7 +77,19 @@ export function applyMove(session: GameSession, position: CellPosition, now = Da
   const finishedAt = won ? now : null;
   const elapsedMilliseconds = Math.max(0, (finishedAt ?? now) - startedAt);
 
-  return buildSession({ config: session.config, board, seed: session.seed, setupMoves: session.setupMoves, moves, elapsedMilliseconds, startedAt, finishedAt });
+  return buildSession({
+    config: session.config,
+    board,
+    seed: session.seed,
+    setupMoves: session.setupMoves,
+    moves,
+    elapsedMilliseconds,
+    startedAt,
+    finishedAt,
+    powerUpsUsed: session.powerUpsUsed,
+    continued: session.continued,
+    undosRemaining: session.undosRemaining,
+  });
 }
 
 export function tickGame(session: GameSession, now = Date.now()): GameSession {
@@ -83,19 +126,54 @@ export function invertGame(session: GameSession): GameSession {
     elapsedMilliseconds: session.elapsedMilliseconds,
     startedAt: session.startedAt,
     finishedAt: null,
+    powerUpsUsed: session.powerUpsUsed,
+    continued: session.continued,
+    undosRemaining: session.undosRemaining,
   });
 }
 
-function buildSession(input: {
-  config: GameConfig;
-  board: Board;
-  seed: string;
-  setupMoves: CellPosition[];
-  moves: number;
-  elapsedMilliseconds: number;
-  startedAt: number | null;
-  finishedAt: number | null;
-}): GameSession {
+export function applyAddTime(session: GameSession, seconds: number): GameSession {
+  if (session.config.mode !== 'time-attack') return session;
+  const newConfig = { ...session.config, timeLimit: (session.config.timeLimit ?? 0) + seconds };
+  return buildSession({
+    ...session,
+    config: newConfig,
+    powerUpsUsed: [...session.powerUpsUsed, 'add-time'],
+  });
+}
+
+export function applyAddMoves(session: GameSession, count: number): GameSession {
+  if (session.config.mode !== 'move-limit') return session;
+  const newConfig = { ...session.config, moveLimit: (session.config.moveLimit ?? 0) + count };
+  return buildSession({
+    ...session,
+    config: newConfig,
+    powerUpsUsed: [...session.powerUpsUsed, 'add-moves'],
+  });
+}
+
+export function applyShuffle(session: GameSession): GameSession {
+  const newSeed = `${session.config.mode}-${session.config.size.rows}x${session.config.size.columns}-${Date.now().toString(36)}`;
+  const { board, setupMoves } = createBoardFromSeed(newSeed, session.config.size);
+  return buildSession({
+    ...session,
+    board,
+    seed: newSeed,
+    setupMoves,
+    moves: 0,
+    powerUpsUsed: [...session.powerUpsUsed, 'shuffle'],
+  });
+}
+
+export function consumeUndo(session: GameSession): GameSession {
+  return {
+    ...session,
+    undosRemaining: Math.max(0, session.undosRemaining - 1),
+    powerUpsUsed: [...session.powerUpsUsed, 'undo'],
+  };
+}
+
+function buildSession(input: SessionInput): GameSession {
   const { config, board, moves, elapsedMilliseconds } = input;
   const won = isVictory(board);
   const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
@@ -129,6 +207,10 @@ function buildSession(input: {
       default:
         score = calculateClassicScore({ totalCells, moves });
     }
+    // Continuation penalty: -30% when the player continued after a loss
+    if (input.continued) {
+      score = Math.round(score * 0.7);
+    }
   }
 
   return {
@@ -137,6 +219,9 @@ function buildSession(input: {
     status,
     score,
     litCells: countLitCells(board),
+    powerUpsUsed: input.powerUpsUsed ?? [],
+    continued: input.continued ?? false,
+    undosRemaining: input.undosRemaining ?? 3,
   };
 }
 

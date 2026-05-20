@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { IconPlay, IconCheck, IconX, IconStar } from '../../../shared/ui/nano/Icon';
+import { earnCoins } from '../../../economy/infra/walletStore';
 import type { AppPage, NavParams } from '../../../app/ui/App';
 
 type ResultPageProps = {
@@ -15,6 +16,19 @@ export function ResultPage({ params, go }: ResultPageProps) {
   const mode          = typeof params.mode === 'string' ? params.mode : 'classic';
   const size          = typeof params.size === 'number' ? params.size : 3;
   const seed          = typeof params.seed === 'string' ? params.seed : '';
+  const powerUpsUsed  = Array.isArray(params.powerUpsUsed) ? params.powerUpsUsed : [];
+  const continued     = params.continued === true;
+  const aided         = powerUpsUsed.length > 0 || continued;
+
+  const coinsEarned = win ? Math.round(score / 200) : 0;
+  const creditedRef = useRef(false);
+
+  useEffect(() => {
+    if (win && coinsEarned > 0 && !creditedRef.current) {
+      creditedRef.current = true;
+      earnCoins(coinsEarned);
+    }
+  }, [win, coinsEarned]);
 
   const handlePlayAgain = useCallback(() => {
     go('game', { mode, size, seed });
@@ -29,7 +43,8 @@ export function ResultPage({ params, go }: ResultPageProps) {
   }, [go, params]);
 
   const handleContinue = useCallback(() => {
-    go('continue', params);
+    const resumeCount = typeof params.resumeCount === 'number' ? params.resumeCount : 0;
+    go('continue', { ...params, resumeCount });
   }, [go, params]);
 
   const handleHome = useCallback(() => {
@@ -65,7 +80,14 @@ export function ResultPage({ params, go }: ResultPageProps) {
             <div className="lab-h1" style={{ fontSize: 26, color: 'var(--cyan)', marginBottom: 4 }}>
               Luces apagadas
             </div>
-            <div className="lab-label" style={{ color: 'var(--muted)' }}>Tablero resuelto</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <div className="lab-label" style={{ color: 'var(--muted)' }}>Tablero resuelto</div>
+              {aided && (
+                <span className="lab-chip" style={{ fontSize: 9, padding: '2px 6px', color: 'var(--amber)', borderColor: 'var(--amber)' }}>
+                  CON AYUDA
+                </span>
+              )}
+            </div>
           </>
         ) : (
           <>
@@ -106,6 +128,12 @@ export function ResultPage({ params, go }: ResultPageProps) {
               <span className="lab-mono">×1.2</span>
             </div>
           )}
+          {win && continued && (
+            <div className="lab-result-row" style={{ color: 'var(--amber)' }}>
+              <span>Penalización continuación</span>
+              <span className="lab-mono">−30%</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -118,7 +146,7 @@ export function ResultPage({ params, go }: ResultPageProps) {
           </div>
           <div className="lab-panel" style={{ flex: 1, padding: '10px 12px', textAlign: 'center' }}>
             <div className="lab-kicker" style={{ marginBottom: 4 }}>MONEDAS</div>
-            <div className="lab-mono" style={{ fontSize: 18, color: 'var(--amber)', fontWeight: 700 }}>+{Math.round(score / 200)}</div>
+            <div className="lab-mono" style={{ fontSize: 18, color: 'var(--amber)', fontWeight: 700 }}>+{coinsEarned}</div>
           </div>
           <div className="lab-panel" style={{ flex: 1, padding: '10px 12px', textAlign: 'center' }}>
             <div className="lab-kicker" style={{ marginBottom: 4 }}>RACHA</div>
@@ -133,9 +161,17 @@ export function ResultPage({ params, go }: ResultPageProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto' }}>
         {win ? (
           <>
-            <button className="lab-btn lab-btn-primary lab-btn-block lab-btn-lg" type="button" onClick={handleInitials}>
-              <IconStar size={16} /> Registrar iniciales
-            </button>
+            {!aided ? (
+              <button className="lab-btn lab-btn-primary lab-btn-block lab-btn-lg" type="button" onClick={handleInitials}>
+                <IconStar size={16} /> Registrar iniciales
+              </button>
+            ) : (
+              <div className="lab-panel" style={{ padding: '10px 14px', textAlign: 'center' }}>
+                <span className="lab-mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
+                  Partidas con ayuda no califican al ranking
+                </span>
+              </div>
+            )}
             <button className="lab-btn lab-btn-block" type="button" onClick={handleNewGame}>
               <IconPlay size={14} /> Jugar otra vez
             </button>

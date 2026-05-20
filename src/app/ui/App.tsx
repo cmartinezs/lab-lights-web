@@ -55,7 +55,7 @@ export function App() {
               <GamePage
                 params={params}
                 onWin={(p) => go('result', { ...p, win: true })}
-                onLose={(p) => go('continue', p)}
+                onLose={(p) => go('result', { ...p, win: false })}
                 onNavigate={go}
               />
             )}

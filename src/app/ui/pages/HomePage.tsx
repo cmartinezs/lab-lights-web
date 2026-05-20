@@ -5,6 +5,7 @@ import { SESSION_HISTORY } from '../App';
 import { relTime, fmtDur } from '../../../shared/infra/sessionStore';
 import { getLastUsedInitials } from '../../../profile/application/profileService';
 import { loadGlobalStats } from '../../../game/infra/gameLocalStore';
+import { getBalance } from '../../../economy/infra/walletStore';
 import type { AppPage, NavParams } from '../App';
 
 type HomePageProps = {
@@ -111,6 +112,7 @@ export function HomePage({ go }: HomePageProps) {
   const initials = getLastUsedInitials();
   const { last, all: history } = SESSION_HISTORY;
   const stats    = loadGlobalStats();
+  const coinBalance = getBalance();
   const hasScores = stats.totalScore > 0;
 
   return (
@@ -203,7 +205,7 @@ export function HomePage({ go }: HomePageProps) {
             <div>
               <div className="lab-mono" style={{ fontSize: 8, color: 'var(--muted)', letterSpacing: '0.14em' }}>MONEDAS</div>
               <div className="lab-mono" style={{ fontSize: 18, fontWeight: 700, color: 'var(--amber)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-                {stats.totalCoins.toLocaleString('es')}
+                {coinBalance.toLocaleString('es')}
               </div>
             </div>
           </div>
