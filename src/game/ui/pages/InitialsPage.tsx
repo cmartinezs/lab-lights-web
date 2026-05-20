@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconCheck, IconPlay, IconChevronUp, IconChevronDown } from '../../../shared/ui/nano/Icon';
 import { saveResultData } from '../../infra/gameLocalStore';
 import { recordWin } from '../../../profile/application/profileService';
@@ -13,6 +14,7 @@ type InitialsPageProps = {
 };
 
 export function InitialsPage({ params, go }: InitialsPageProps) {
+  const { t } = useTranslation();
   const score         = typeof params.score === 'number' ? params.score : 0;
   const moves         = typeof params.moves === 'number' ? params.moves : 0;
   const elapsedSecs   = typeof params.elapsedSeconds === 'number' ? params.elapsedSeconds : 0;
@@ -55,10 +57,10 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
     <div className="screen boot-in" style={{ display: 'flex', flexDirection: 'column', padding: '20px 14px', gap: 20 }}>
       {/* Header */}
       <div style={{ textAlign: 'center' }}>
-        <div className="lab-kicker lab-kicker-cy">REGISTRO</div>
-        <div className="lab-h1" style={{ fontSize: 24, marginTop: 6 }}>Tus iniciales</div>
+        <div className="lab-kicker lab-kicker-cy">{t('initials.kicker')}</div>
+        <div className="lab-h1" style={{ fontSize: 24, marginTop: 6 }}>{t('initials.title')}</div>
         <div className="lab-label" style={{ color: 'var(--muted)', marginTop: 4 }}>
-          Puntaje: <span className="lab-mono" style={{ color: 'var(--cyan)' }}>{score.toLocaleString('es')}</span>
+          {t('initials.score')} <span className="lab-mono" style={{ color: 'var(--cyan)' }}>{score.toLocaleString('es')}</span>
         </div>
       </div>
 
@@ -125,7 +127,7 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--cyan)' }}>
               <IconCheck size={14} />
-              <span className="lab-mono" style={{ fontSize: 11, letterSpacing: '0.1em' }}>RESULTADO GRABADO</span>
+              <span className="lab-mono" style={{ fontSize: 11, letterSpacing: '0.1em' }}>{t('initials.saved')}</span>
             </div>
             <button
               aria-label="Cerrar alerta"
@@ -142,23 +144,23 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
         )}
         {!saved && (
           <button
-            aria-label="Grabar resultado"
+            aria-label={t('initials.save')}
             className="lab-btn lab-btn-primary lab-btn-block lab-btn-lg"
             type="button"
             onClick={handleSave}
           >
             <IconCheck size={16} />
-            Grabar resultado
+            {t('initials.save')}
           </button>
         )}
         {saved && (
           <button
-            aria-label="Nueva partida"
+            aria-label={t('initials.newGame')}
             className="lab-btn lab-btn-block"
             type="button"
             onClick={() => go('game', { mode, size })}
           >
-            <IconPlay size={14} /> Nueva partida
+            <IconPlay size={14} /> {t('initials.newGame')}
           </button>
         )}
         {saved && (
@@ -167,7 +169,7 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
             type="button"
             onClick={() => go('rankings')}
           >
-            Ver ranking
+            {t('initials.rankings')}
           </button>
         )}
       </div>

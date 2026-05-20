@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconPlay, IconCheck, IconX, IconStar } from '../../../shared/ui/nano/Icon';
 import { earnCoins } from '../../../economy/infra/walletStore';
 import type { AppPage, NavParams } from '../../../app/ui/App';
+
+function modeKey(id: string): string {
+  return id.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
 
 type ResultPageProps = {
   params: NavParams;
@@ -9,6 +14,7 @@ type ResultPageProps = {
 };
 
 export function ResultPage({ params, go }: ResultPageProps) {
+  const { t } = useTranslation();
   const win           = params.win === true;
   const score         = typeof params.score === 'number' ? params.score : 0;
   const moves         = typeof params.moves === 'number' ? params.moves : 0;
@@ -57,10 +63,7 @@ export function ResultPage({ params, go }: ResultPageProps) {
     return `${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
   }
 
-  const modeLabelMap: Record<string, string> = {
-    classic: 'CLASSIC', 'time-attack': 'TIME ATTACK', 'move-limit': 'MOVE LIMIT', dimensional: 'DIMENSIONAL',
-  };
-  const modeLabel = modeLabelMap[mode] ?? mode.toUpperCase();
+  const modeLabel = t(`game.modes.${modeKey(mode)}`, { defaultValue: mode.toUpperCase() });
 
   return (
     <div className="screen boot-in" style={{ display: 'flex', flexDirection: 'column', padding: '20px 14px', gap: 16 }}>
@@ -78,13 +81,13 @@ export function ResultPage({ params, go }: ResultPageProps) {
               <IconCheck size={28} style={{ color: 'var(--cyan)' }} />
             </div>
             <div className="lab-h1" style={{ fontSize: 26, color: 'var(--cyan)', marginBottom: 4 }}>
-              Luces apagadas
+              {t('result.win.title')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <div className="lab-label" style={{ color: 'var(--muted)' }}>Tablero resuelto</div>
+              <div className="lab-label" style={{ color: 'var(--muted)' }}>{t('result.win.subtitle')}</div>
               {aided && (
                 <span className="lab-chip" style={{ fontSize: 9, padding: '2px 6px', color: 'var(--amber)', borderColor: 'var(--amber)' }}>
-                  CON AYUDA
+                  {t('result.win.aidedBadge')}
                 </span>
               )}
             </div>
@@ -100,37 +103,37 @@ export function ResultPage({ params, go }: ResultPageProps) {
               <IconX size={28} style={{ color: 'var(--amber)' }} />
             </div>
             <div className="lab-h1" style={{ fontSize: 26, color: 'var(--amber)', marginBottom: 4 }}>
-              Tiempo agotado
+              {t('result.lose.title')}
             </div>
-            <div className="lab-label" style={{ color: 'var(--muted)' }}>El laboratorio sigue encendido</div>
+            <div className="lab-label" style={{ color: 'var(--muted)' }}>{t('result.lose.subtitle')}</div>
           </>
         )}
       </div>
 
       {/* Score */}
       <div className="lab-panel" style={{ padding: '16px 16px 12px' }}>
-        <div className="lab-kicker" style={{ marginBottom: 12 }}>PUNTAJE FINAL</div>
+        <div className="lab-kicker" style={{ marginBottom: 12 }}>{t('result.score.kicker')}</div>
         <div className="lab-mono" style={{ fontSize: 36, color: win ? 'var(--cyan)' : 'var(--amber)', fontWeight: 700, letterSpacing: '0.04em', marginBottom: 12 }}>
           {score.toLocaleString('es')}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className="lab-result-row">
-            <span>Movimientos</span>
+            <span>{t('result.score.moves')}</span>
             <span className="lab-mono">{moves.toString().padStart(3, '0')}</span>
           </div>
           <div className="lab-result-row">
-            <span>Tiempo</span>
+            <span>{t('result.score.time')}</span>
             <span className="lab-mono">{fmtSec(elapsedSecs)}</span>
           </div>
           {win && size >= 5 && (
             <div className="lab-result-row" style={{ color: 'var(--cyan)' }}>
-              <span>Bonus tablero {size}×{size}</span>
+              <span>{t('result.score.sizeBonus', { size })}</span>
               <span className="lab-mono">×1.2</span>
             </div>
           )}
           {win && continued && (
             <div className="lab-result-row" style={{ color: 'var(--amber)' }}>
-              <span>Penalización continuación</span>
+              <span>{t('result.score.penalty')}</span>
               <span className="lab-mono">−30%</span>
             </div>
           )}
@@ -141,15 +144,15 @@ export function ResultPage({ params, go }: ResultPageProps) {
       {win && (
         <div style={{ display: 'flex', gap: 8 }}>
           <div className="lab-panel" style={{ flex: 1, padding: '10px 12px', textAlign: 'center' }}>
-            <div className="lab-kicker" style={{ marginBottom: 4 }}>XP</div>
+            <div className="lab-kicker" style={{ marginBottom: 4 }}>{t('result.rewards.xp')}</div>
             <div className="lab-mono" style={{ fontSize: 18, color: 'var(--cyan)', fontWeight: 700 }}>+{Math.round(score / 100)}</div>
           </div>
           <div className="lab-panel" style={{ flex: 1, padding: '10px 12px', textAlign: 'center' }}>
-            <div className="lab-kicker" style={{ marginBottom: 4 }}>MONEDAS</div>
+            <div className="lab-kicker" style={{ marginBottom: 4 }}>{t('result.rewards.coins')}</div>
             <div className="lab-mono" style={{ fontSize: 18, color: 'var(--amber)', fontWeight: 700 }}>+{coinsEarned}</div>
           </div>
           <div className="lab-panel" style={{ flex: 1, padding: '10px 12px', textAlign: 'center' }}>
-            <div className="lab-kicker" style={{ marginBottom: 4 }}>RACHA</div>
+            <div className="lab-kicker" style={{ marginBottom: 4 }}>{t('result.rewards.streak')}</div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <IconStar size={18} style={{ color: 'var(--amber)' }} />
             </div>
@@ -163,32 +166,32 @@ export function ResultPage({ params, go }: ResultPageProps) {
           <>
             {!aided ? (
               <button className="lab-btn lab-btn-primary lab-btn-block lab-btn-lg" type="button" onClick={handleInitials}>
-                <IconStar size={16} /> Registrar iniciales
+                <IconStar size={16} /> {t('result.cta.initials')}
               </button>
             ) : (
               <div className="lab-panel" style={{ padding: '10px 14px', textAlign: 'center' }}>
                 <span className="lab-mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  Partidas con ayuda no califican al ranking
+                  {t('result.cta.noRanking')}
                 </span>
               </div>
             )}
             <button className="lab-btn lab-btn-block" type="button" onClick={handleNewGame}>
-              <IconPlay size={14} /> Jugar otra vez
+              <IconPlay size={14} /> {t('result.cta.playAgain')}
             </button>
             <button className="lab-btn lab-btn-ghost lab-btn-block" type="button" onClick={handleHome}>
-              Volver al inicio
+              {t('result.cta.home')}
             </button>
           </>
         ) : (
           <>
             <button className="lab-btn lab-btn-primary lab-btn-block lab-btn-lg" type="button" onClick={handleContinue}>
-              Continuar partida
+              {t('result.cta.continue')}
             </button>
             <button className="lab-btn lab-btn-block" type="button" onClick={handlePlayAgain}>
-              <IconPlay size={14} /> Reintentar
+              <IconPlay size={14} /> {t('result.cta.retry')}
             </button>
             <button className="lab-btn lab-btn-ghost lab-btn-block" type="button" onClick={handleHome}>
-              Volver al inicio
+              {t('result.cta.home')}
             </button>
           </>
         )}

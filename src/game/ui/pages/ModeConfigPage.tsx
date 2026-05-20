@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScreenHeader } from '../../../shared/ui/components/ScreenHeader';
 import { IconPlay, IconClock, IconBolt, IconUndo, IconBulb, IconShuffle, IconCoin } from '../../../shared/ui/nano/Icon';
 import {
@@ -7,14 +8,9 @@ import {
 } from '../../domain/gameConfig';
 import type { AppPage, NavParams } from '../../../app/ui/App';
 
-const PLAYABLE_MODES = [
-  { id: 'classic',     title: 'Classic',       desc: 'Puzzle libre 3×3 sin límites. Al tocar una sala se invierte ella y sus adyacentes.', fixed: true },
-  { id: 'time-attack', title: 'Time Attack',   desc: 'Debes resolver el tablero antes de que se agote el temporizador.' },
-  { id: 'move-limit',  title: 'Move Limit',    desc: 'Tienes un número limitado de movimientos para resolver el tablero.' },
-  { id: 'dimensional', title: 'Dimensional',   desc: 'Tablero de tamaño variable. De 3×3 hasta 10×10.' },
-  { id: 'daily',       title: 'Daily Challenge', desc: 'Una partida única por día con seed compartida globalmente.' },
-  { id: 'puzzle',      title: 'Puzzle',        desc: 'Resuelve el tablero en el menor número de movimientos posible.' },
-];
+function modeKey(id: string): string {
+  return id.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
 
 type ModeConfigPageProps = {
   modeId?: string;
@@ -23,7 +19,7 @@ type ModeConfigPageProps = {
 };
 
 export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageProps) {
-  const modeInfo = PLAYABLE_MODES.find((m) => m.id === modeId) ?? { id: 'classic', title: 'Classic', desc: '', fixed: true };
+  const { t } = useTranslation();
   const isClassic = modeId === 'classic';
 
   const minSize = BOARD_SIZE_MIN;
@@ -51,11 +47,13 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
     go('game', { mode: gameMode, size, config });
   }
 
+  const modeTitle = t(`mode.${modeKey(modeId)}`);
+
   return (
     <div className="screen boot-in">
       <ScreenHeader
-        kicker={'// CONFIGURACIÓN · ' + modeInfo.title.toUpperCase()}
-        title={modeInfo.title}
+        kicker={t('setup.kicker', { mode: modeTitle.toUpperCase() })}
+        title={modeTitle}
         onBack={back}
       />
 
@@ -64,7 +62,7 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
         {/* Description */}
         <div className="lab-panel" style={{ padding: 14 }}>
           <div className="lab-mono" style={{ fontSize: 11.5, color: 'var(--text-2)', lineHeight: 1.5 }}>
-            {modeInfo.desc}
+            {t(`mode.description.${modeKey(modeId)}`)}
           </div>
         </div>
 
@@ -72,12 +70,12 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
         {!isClassic && (
           <>
             <div style={{ marginTop: 18, marginBottom: 8 }}>
-              <div className="lab-kicker">// MATRIZ</div>
-              <div className="lab-h1" style={{ fontSize: 16 }}>Tamaño del tablero</div>
+              <div className="lab-kicker">{t('setup.boardSizeKicker')}</div>
+              <div className="lab-h1" style={{ fontSize: 16 }}>{t('setup.boardSize')}</div>
             </div>
             <div className="lab-panel" style={{ padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span className="lab-label">Dimensión</span>
+                <span className="lab-label">{t('setup.dimensionLabel')}</span>
                 <span className="lab-mono" style={{ fontSize: 22, fontWeight: 600, color: 'var(--cyan)', fontVariantNumeric: 'tabular-nums' }}>
                   {size}×{size}
                 </span>
@@ -93,7 +91,7 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
               />
               <div className="lab-mono" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: 'var(--dim)', letterSpacing: '0.14em', marginTop: 4 }}>
                 <span>{minSize}×{minSize}</span>
-                <span>{size * size} CELDAS</span>
+                <span>{t('setup.cellsCount', { count: size * size })}</span>
                 <span>{maxSize}×{maxSize}</span>
               </div>
             </div>
@@ -102,21 +100,21 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
 
         {/* Restrictions */}
         <div style={{ marginTop: 18, marginBottom: 8 }}>
-          <div className="lab-kicker">// RESTRICCIONES</div>
-          <div className="lab-h1" style={{ fontSize: 16 }}>Reglas activas</div>
+          <div className="lab-kicker">{t('setup.restrictionsKicker')}</div>
+          <div className="lab-h1" style={{ fontSize: 16 }}>{t('setup.restrictionsTitle')}</div>
         </div>
         <div className="lab-panel">
           <ToggleRow
             Icon={IconClock}
-            desc={timeOn ? `Base: ${fmt(timeLimit)}` : 'Sin temporizador'}
-            title="Tiempo límite"
+            desc={timeOn ? t('setup.timeLimitOn', { time: fmt(timeLimit) }) : t('setup.timeLimitOff')}
+            title={t('setup.timeLimit')}
             value={timeOn}
             onChange={setTimeOn}
           />
           <ToggleRow
             Icon={IconBolt}
-            desc={movesOn ? `Base: ${movesLimit} movs` : 'Movimientos ilimitados'}
-            title="Límite de movimientos"
+            desc={movesOn ? t('setup.moveLimitOn', { count: movesLimit }) : t('setup.moveLimitOff')}
+            title={t('setup.moveLimitLabel')}
             value={movesOn}
             onChange={setMovesOn}
           />
@@ -125,8 +123,8 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
         {/* Loadout */}
         <div style={{ marginTop: 18, marginBottom: 8, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div>
-            <div className="lab-kicker">// LOADOUT</div>
-            <div className="lab-h1" style={{ fontSize: 16 }}>Power-ups equipados</div>
+            <div className="lab-kicker">{t('setup.loadoutKicker')}</div>
+            <div className="lab-h1" style={{ fontSize: 16 }}>{t('setup.loadoutTitle')}</div>
           </div>
           <span className="lab-coin"><IconCoin size={12} /> 1.240</span>
         </div>
@@ -148,12 +146,12 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
 
         {/* Preview */}
         <div className="lab-panel lab-panel-corner" style={{ marginTop: 16, padding: 14 }}>
-          <div className="lab-kicker lab-kicker-cy">VISTA PREVIA</div>
+          <div className="lab-kicker lab-kicker-cy">{t('setup.previewKicker')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
-            <KV label="Modo" value={modeInfo.title} />
-            <KV label="Tablero" value={`${size}×${size}`} />
-            <KV label="Tiempo" value={timeOn ? fmt(timeLimit) : '∞'} />
-            <KV label="Movs" value={movesOn ? movesLimit.toString() : '∞'} />
+            <KV label={t('setup.previewMode')} value={modeTitle} />
+            <KV label={t('setup.previewBoard')} value={`${size}×${size}`} />
+            <KV label={t('setup.previewTime')} value={timeOn ? fmt(timeLimit) : '∞'} />
+            <KV label={t('setup.previewMoves')} value={movesOn ? movesLimit.toString() : '∞'} />
           </div>
         </div>
       </div>
@@ -164,7 +162,7 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
           type="button"
           onClick={handleStart}
         >
-          <IconPlay size={16} /> Iniciar partida
+          <IconPlay size={16} /> {t('setup.start')}
         </button>
       </div>
     </div>

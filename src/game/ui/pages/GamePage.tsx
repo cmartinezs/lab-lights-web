@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   applyMove, applyAddTime, applyAddMoves, applyShuffle, consumeUndo,
   invertGame, restartGame, startGame, tickGame,
@@ -53,7 +54,12 @@ function buildSession(navParams: NavParams): GameSession {
   return startGame(config, seed, { continued });
 }
 
+function modeKey(id: string): string {
+  return id.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
+
 export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
+  const { t } = useTranslation();
   const [session, setSession] = useState<GameSession>(() => buildSession(params));
   const [paused, setPaused] = useState(false);
   const [notified, setNotified] = useState(false);
@@ -159,10 +165,7 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
     return `${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
   }
 
-  const modeLabelMap: Record<string, string> = {
-    classic: 'CLASSIC', 'time-attack': 'TIME ATTACK', 'move-limit': 'MOVE LIMIT', dimensional: 'DIMENSIONAL',
-  };
-  const modeLabel = modeLabelMap[config.mode] ?? config.mode.toUpperCase();
+  const modeLabel = t(`game.modes.${modeKey(config.mode)}`, { defaultValue: config.mode.toUpperCase() });
   const canUndo = session.undosRemaining > 0 && snapshotStack.current.length > 0;
 
   return (
@@ -175,7 +178,7 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
         flexShrink: 0,
       }}>
         <button
-          aria-label={paused ? 'Reanudar' : 'Pausar'}
+          aria-label={paused ? t('game.hud.resumeAria') : t('game.hud.pauseAria')}
           className="lab-btn lab-btn-ghost"
           style={{ padding: 8, minWidth: 38, height: 38 }}
           type="button"
@@ -197,7 +200,7 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
           </span>
         </div>
         <button
-          aria-label="Salir"
+          aria-label={t('game.hud.exitAria')}
           className="lab-btn lab-btn-ghost"
           style={{ padding: 8, minWidth: 38, height: 38 }}
           type="button"
@@ -214,17 +217,17 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
         gap: 6, padding: '10px 14px', flexShrink: 0,
       }}>
         <div className={'lab-stat' + (timeOn && timeLeft < 30 ? ' crit' : timeOn && timeLeft < 60 ? ' warn' : '')}>
-          <div className="stat-label">{timeOn ? 'Tiempo' : 'Tiempo'}</div>
+          <div className="stat-label">{t('game.stats.time')}</div>
           <div className="stat-value" style={{ fontSize: 16 }}>{fmtSec(displayTime)}</div>
         </div>
         <div className={'lab-stat' + (movesOn && movesLeft < 5 ? ' crit' : movesOn && movesLeft < 10 ? ' warn' : '')}>
-          <div className="stat-label">{movesOn ? 'Movs restantes' : 'Movs'}</div>
+          <div className="stat-label">{movesOn ? t('game.stats.remainingMoves') : t('game.stats.moves')}</div>
           <div className="stat-value" style={{ fontSize: 16 }}>
             {movesOn ? movesLeft.toString().padStart(2, '0') : session.moves.toString().padStart(2, '0')}
           </div>
         </div>
         <div className="lab-stat">
-          <div className="stat-label">Luces</div>
+          <div className="stat-label">{t('game.stats.lights')}</div>
           <div className="stat-value" style={{ fontSize: 16 }}>{lights.toString().padStart(2, '0')}</div>
         </div>
       </div>
@@ -264,19 +267,19 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
             zIndex: 10,
           }}>
             <div className="lab-brk" style={{ textAlign: 'center', padding: 24 }}>
-              <div className="lab-kicker lab-kicker-cy">// PAUSA</div>
+              <div className="lab-kicker lab-kicker-cy">{t('game.pause.kicker')}</div>
               <div className="lab-h1" style={{ fontSize: 22, marginTop: 6, marginBottom: 16 }}>
-                Tablero suspendido
+                {t('game.pause.title')}
               </div>
               <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
                 <button className="lab-btn lab-btn-primary" type="button" onClick={() => setPaused(false)}>
-                  <IconPlay size={14} /> Reanudar
+                  <IconPlay size={14} /> {t('game.pause.resume')}
                 </button>
                 <button className="lab-btn" type="button" onClick={handleRestart}>
-                  Reiniciar tablero
+                  {t('game.pause.restart')}
                 </button>
                 <button className="lab-btn lab-btn-ghost" type="button" onClick={() => onNavigate('home')}>
-                  Salir al menú
+                  {t('game.pause.exit')}
                 </button>
               </div>
             </div>
@@ -286,7 +289,7 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
 
       {/* Power-ups */}
       <div style={{ padding: '8px 14px 12px', flexShrink: 0 }}>
-        <div className="lab-kicker" style={{ marginBottom: 6 }}>POWER-UPS</div>
+        <div className="lab-kicker" style={{ marginBottom: 6 }}>{t('game.powerups.label')}</div>
         <div className="lab-tray">
           {/* Invert — always free */}
           <div
@@ -353,11 +356,11 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
       <div style={{ padding: '4px 14px 8px', flexShrink: 0, borderTop: '1px solid var(--line-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div className="lab-mono" style={{ fontSize: 10, color: 'var(--dim)', letterSpacing: '0.14em' }}>
-            PUNTAJE EST.
+            {t('game.hud.estScore')}
           </div>
           {session.continued && (
             <span className="lab-chip" style={{ fontSize: 8, padding: '1px 5px', color: 'var(--amber)', borderColor: 'var(--amber)', opacity: 0.8 }}>
-              −30%
+              {t('game.hud.continuedPenalty')}
             </span>
           )}
         </div>

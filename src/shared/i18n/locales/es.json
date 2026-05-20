@@ -1,32 +1,164 @@
 {
   "mode": {
-    "classic": "Classic 3×3",
+    "classic": "Classic",
     "dimensional": "Dimensional",
     "timeAttack": "Time Attack",
     "moveLimit": "Move Limit",
+    "daily": "Daily Challenge",
+    "blind": "Blind",
+    "mirror": "Mirror",
+    "chaos": "Chaos",
+    "chain": "Chain Reaction",
+    "puzzle": "Puzzle",
     "description": {
-      "classic": "Activa una sala para invertirla junto con sus adyacentes ortogonales. La partida termina cuando todas quedan apagadas.",
-      "dimensional": "Las mismas reglas que Classic en un tablero de tamaño configurable.",
-      "timeAttack": "Apaga el laboratorio antes de que se agote el tiempo. El tiempo disponible depende del tamaño del tablero.",
-      "moveLimit": "Apaga el laboratorio dentro del límite de movimientos. El presupuesto de movimientos depende del tamaño del tablero."
+      "classic": "Puzzle libre 3×3 sin límites. Al tocar una sala se invierte ella y sus adyacentes.",
+      "dimensional": "Tablero de tamaño variable. De 3×3 hasta 10×10.",
+      "timeAttack": "Debes resolver el tablero antes de que se agote el temporizador.",
+      "moveLimit": "Tienes un número limitado de movimientos para resolver el tablero.",
+      "daily": "Una partida única por día con seed compartida globalmente.",
+      "blind": "Sin estado visible del tablero.",
+      "mirror": "Simetría especular en movimientos.",
+      "chaos": "Perturbaciones aleatorias.",
+      "chain": "Cascadas en cadena.",
+      "puzzle": "Resuelve el tablero en el menor número de movimientos posible."
+    },
+    "shortDesc": {
+      "classic": "3×3 sin límites",
+      "timeAttack": "Resuelve antes del tiempo",
+      "moveLimit": "Pocos movimientos disponibles",
+      "dimensional": "3×3 hasta 10×10 configurable",
+      "daily": "Una partida por día · seed única",
+      "blind": "Sin estado visible del tablero",
+      "mirror": "Simetría especular en movimientos",
+      "chaos": "Perturbaciones aleatorias",
+      "chain": "Cascadas en cadena",
+      "puzzle": "Resuelve en el mínimo de pasos"
     }
+  },
+  "modes": {
+    "kicker": "// ARCHIVO DE MODOS",
+    "title": "Todos los modos",
+    "availableLevel": "DISPONIBLES · NIVEL {{level}}",
+    "levelChip": "NVL {{level}}"
   },
   "setup": {
     "title": "Seleccionar modo",
+    "kicker": "// CONFIGURACIÓN · {{mode}}",
     "boardSize": "Tamaño del tablero",
+    "boardSizeKicker": "// MATRIZ",
+    "dimensionLabel": "Dimensión",
+    "cellsCount": "{{count}} CELDAS",
+    "restrictionsKicker": "// RESTRICCIONES",
+    "restrictionsTitle": "Reglas activas",
+    "timeLimit": "Tiempo límite",
+    "timeLimitOn": "Base: {{time}}",
+    "timeLimitOff": "Sin temporizador",
+    "moveLimitLabel": "Límite de movimientos",
+    "moveLimitOn": "Base: {{count}} movs",
+    "moveLimitOff": "Movimientos ilimitados",
+    "loadoutKicker": "// LOADOUT",
+    "loadoutTitle": "Power-ups equipados",
+    "previewKicker": "VISTA PREVIA",
+    "previewMode": "Modo",
+    "previewBoard": "Tablero",
+    "previewTime": "Tiempo",
+    "previewMoves": "Movs",
     "timeLimitInfo": "Tiempo límite: {{seconds}} s",
     "moveLimitInfo": "Límite: {{moves}} movs",
     "start": "Iniciar partida"
   },
   "game": {
+    "hud": {
+      "pauseAria": "Pausar",
+      "resumeAria": "Reanudar",
+      "exitAria": "Salir",
+      "estScore": "PUNTAJE EST.",
+      "continuedPenalty": "−30%"
+    },
+    "modes": {
+      "classic": "CLASSIC",
+      "timeAttack": "TIME ATTACK",
+      "moveLimit": "MOVE LIMIT",
+      "dimensional": "DIMENSIONAL"
+    },
     "stats": {
-      "remainingTime": "Tiempo rest.",
-      "remainingMoves": "Movs rest."
+      "time": "Tiempo",
+      "remainingTime": "Tiempo",
+      "moves": "Movs",
+      "remainingMoves": "Movs restantes",
+      "lights": "Luces"
+    },
+    "powerups": {
+      "label": "POWER-UPS"
+    },
+    "pause": {
+      "kicker": "// PAUSA",
+      "title": "Tablero suspendido",
+      "resume": "Reanudar",
+      "restart": "Reiniciar tablero",
+      "exit": "Salir al menú"
     },
     "lost": {
       "timeTitle": "Tiempo agotado",
       "movesTitle": "Sin movimientos",
       "label": "Resultado"
     }
+  },
+  "result": {
+    "win": {
+      "title": "Luces apagadas",
+      "subtitle": "Tablero resuelto",
+      "aidedBadge": "CON AYUDA"
+    },
+    "lose": {
+      "title": "Tiempo agotado",
+      "subtitle": "El laboratorio sigue encendido"
+    },
+    "score": {
+      "kicker": "PUNTAJE FINAL",
+      "moves": "Movimientos",
+      "time": "Tiempo",
+      "sizeBonus": "Bonus tablero {{size}}×{{size}}",
+      "penalty": "Penalización continuación"
+    },
+    "rewards": {
+      "xp": "XP",
+      "coins": "MONEDAS",
+      "streak": "RACHA"
+    },
+    "cta": {
+      "initials": "Registrar iniciales",
+      "noRanking": "Partidas con ayuda no califican al ranking",
+      "playAgain": "Jugar otra vez",
+      "home": "Volver al inicio",
+      "continue": "Continuar partida",
+      "retry": "Reintentar"
+    }
+  },
+  "continue": {
+    "kicker": "PARTIDA INTERRUMPIDA",
+    "title": "¿Continuar?",
+    "subtitle": "Usa una ayuda para seguir jugando",
+    "currentScore": "PUNTAJE ACTUAL · {{score}}",
+    "coins": "MONEDAS · {{balance}}",
+    "penaltyNote": "Nota: continuar aplica −30% al puntaje final",
+    "freeButton": "Continuar gratis (×1)",
+    "freeUsedButton": "Continúa gratis ya usada",
+    "abandon": "Abandonar partida",
+    "options": {
+      "time30": { "label": "+30 segundos", "detail": "Amplía el tiempo de juego" },
+      "time60": { "label": "+60 segundos", "detail": "Más tiempo para resolver" },
+      "moves5": { "label": "+5 movimientos", "detail": "Movimientos adicionales" },
+      "spark":  { "label": "Última chispa",  "detail": "Resuelve una celda aleatoria" }
+    }
+  },
+  "initials": {
+    "kicker": "REGISTRO",
+    "title": "Tus iniciales",
+    "score": "Puntaje:",
+    "saved": "RESULTADO GRABADO",
+    "save": "Grabar resultado",
+    "newGame": "Nueva partida",
+    "rankings": "Ver ranking"
   }
 }

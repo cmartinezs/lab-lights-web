@@ -1,19 +1,24 @@
+import { useTranslation } from 'react-i18next';
 import { ScreenHeader } from '../../../shared/ui/components/ScreenHeader';
 import { IconGrid, IconClock, IconBolt, IconLock, IconChevronRight, IconCalendar } from '../../../shared/ui/nano/Icon';
 import type { AppPage, NavParams } from '../../../app/ui/App';
 
 export const ALL_MODES = [
-  { id: 'classic',     title: 'Classic',        desc: '3×3 sin límites',                    level: 1 },
-  { id: 'time-attack', title: 'Time Attack',     desc: 'Resuelve antes del tiempo',          level: 2 },
-  { id: 'move-limit',  title: 'Move Limit',      desc: 'Pocos movimientos disponibles',      level: 3 },
-  { id: 'dimensional', title: 'Dimensional',     desc: '3×3 hasta 10×10 configurable',       level: 4 },
-  { id: 'daily',       title: 'Daily Challenge', desc: 'Una partida por día · seed única',   level: 1 },
-  { id: 'blind',       title: 'Blind',           desc: 'Sin estado visible del tablero',     level: 5, locked: true },
-  { id: 'mirror',      title: 'Mirror',          desc: 'Simetría especular en movimientos',  level: 6, locked: true },
-  { id: 'chaos',       title: 'Chaos',           desc: 'Perturbaciones aleatorias',          level: 8, locked: true },
-  { id: 'chain',       title: 'Chain Reaction',  desc: 'Cascadas en cadena',                 level: 10, locked: true },
-  { id: 'puzzle',      title: 'Puzzle',          desc: 'Resuelve en el mínimo de pasos',     level: 1 },
+  { id: 'classic',     level: 1 },
+  { id: 'time-attack', level: 2 },
+  { id: 'move-limit',  level: 3 },
+  { id: 'dimensional', level: 4 },
+  { id: 'daily',       level: 1 },
+  { id: 'blind',       level: 5,  locked: true },
+  { id: 'mirror',      level: 6,  locked: true },
+  { id: 'chaos',       level: 8,  locked: true },
+  { id: 'chain',       level: 10, locked: true },
+  { id: 'puzzle',      level: 1 },
 ];
+
+function modeKey(id: string): string {
+  return id.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
 
 function getModeIcon(id: string) {
   switch (id) {
@@ -29,17 +34,18 @@ type ModesPageProps = {
 };
 
 export function ModesPage({ go }: ModesPageProps) {
+  const { t } = useTranslation();
   const USER_LEVEL = 4;
 
   return (
     <div className="screen boot-in">
-      <ScreenHeader kicker="// ARCHIVO DE MODOS" title="Todos los modos" />
+      <ScreenHeader kicker={t('modes.kicker')} title={t('modes.title')} />
 
       <div className="screen-scroll" style={{ padding: '12px 16px 90px' }}>
         {/* Progress indicator */}
         <div className="lab-panel" style={{ padding: 12, marginBottom: 14 }}>
           <div className="lab-mono" style={{ fontSize: 10.5, color: 'var(--muted)', letterSpacing: '0.14em' }}>
-            DISPONIBLES · NIVEL {USER_LEVEL}
+            {t('modes.availableLevel', { level: USER_LEVEL })}
           </div>
           <div className="lab-dot-line" style={{ marginTop: 8 }}>
             {ALL_MODES.map((m, i) => (
@@ -68,13 +74,13 @@ export function ModesPage({ go }: ModesPageProps) {
                     {locked ? <IconLock size={16} /> : <MIcon size={18} />}
                   </div>
                   {locked
-                    ? <span className="lab-chip" style={{ padding: '2px 6px', fontSize: 9 }}>NVL {m.level}</span>
+                    ? <span className="lab-chip" style={{ padding: '2px 6px', fontSize: 9 }}>{t('modes.levelChip', { level: m.level })}</span>
                     : <IconChevronRight size={14} style={{ color: 'var(--dim)' }} />
                   }
                 </div>
-                <div className="lab-h1" style={{ fontSize: 15 }}>{m.title}</div>
+                <div className="lab-h1" style={{ fontSize: 15 }}>{t(`mode.${modeKey(m.id)}`)}</div>
                 <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10.5, color: 'var(--muted)' }}>
-                  {m.desc}
+                  {t(`mode.shortDesc.${modeKey(m.id)}`)}
                 </div>
               </button>
             );

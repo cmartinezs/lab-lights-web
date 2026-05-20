@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconClock, IconBolt, IconPlay, IconX } from '../../../shared/ui/nano/Icon';
 import { getBalance, spendCoins } from '../../../economy/infra/walletStore';
 import type { AppPage, NavParams } from '../../../app/ui/App';
@@ -11,20 +12,19 @@ type ContinuePageProps = {
 type ContinueOption = {
   id: string;
   icon: typeof IconClock;
-  label: string;
-  detail: string;
   cost: number;
   color: string;
 };
 
 const OPTIONS: ContinueOption[] = [
-  { id: 'time30',  icon: IconClock, label: '+30 segundos', detail: 'Amplía el tiempo de juego', cost: 5,  color: 'var(--cyan)' },
-  { id: 'time60',  icon: IconClock, label: '+60 segundos', detail: 'Más tiempo para resolver',  cost: 10, color: 'var(--cyan)' },
-  { id: 'moves5',  icon: IconBolt,  label: '+5 movimientos', detail: 'Movimientos adicionales',  cost: 8,  color: 'var(--amber)' },
-  { id: 'spark',   icon: IconBolt,  label: 'Última chispa', detail: 'Resuelve una celda aleatoria', cost: 15, color: 'var(--green)' },
+  { id: 'time30', icon: IconClock, cost: 5,  color: 'var(--cyan)' },
+  { id: 'time60', icon: IconClock, cost: 10, color: 'var(--cyan)' },
+  { id: 'moves5', icon: IconBolt,  cost: 8,  color: 'var(--amber)' },
+  { id: 'spark',  icon: IconBolt,  cost: 15, color: 'var(--green)' },
 ];
 
 export function ContinuePage({ params, go }: ContinuePageProps) {
+  const { t } = useTranslation();
   const mode        = typeof params.mode === 'string' ? params.mode : 'classic';
   const size        = typeof params.size === 'number' ? params.size : 3;
   const score       = typeof params.score === 'number' ? params.score : 0;
@@ -50,20 +50,20 @@ export function ContinuePage({ params, go }: ContinuePageProps) {
     <div className="screen boot-in" style={{ display: 'flex', flexDirection: 'column', padding: '20px 14px', gap: 16 }}>
       {/* Header */}
       <div className="lab-brk" style={{ textAlign: 'center', padding: '20px 16px' }}>
-        <div className="lab-kicker lab-kicker-cy">PARTIDA INTERRUMPIDA</div>
-        <div className="lab-h1" style={{ fontSize: 24, marginTop: 8, marginBottom: 6 }}>¿Continuar?</div>
+        <div className="lab-kicker lab-kicker-cy">{t('continue.kicker')}</div>
+        <div className="lab-h1" style={{ fontSize: 24, marginTop: 8, marginBottom: 6 }}>{t('continue.title')}</div>
         <div className="lab-label" style={{ color: 'var(--muted)' }}>
-          Usa una ayuda para seguir jugando
+          {t('continue.subtitle')}
         </div>
         <div className="lab-mono" style={{ fontSize: 11, color: 'var(--dim)', marginTop: 8, letterSpacing: '0.1em' }}>
-          PUNTAJE ACTUAL · {score.toLocaleString('es')}
+          {t('continue.currentScore', { score: score.toLocaleString('es') })}
         </div>
         <div className="lab-mono" style={{ fontSize: 11, color: 'var(--amber)', marginTop: 4, letterSpacing: '0.1em' }}>
-          MONEDAS · {balance.toLocaleString('es')}
+          {t('continue.coins', { balance: balance.toLocaleString('es') })}
         </div>
         {resumeCount > 0 && (
           <div className="lab-mono" style={{ fontSize: 10, color: 'var(--dim)', marginTop: 6 }}>
-            Nota: continuar aplica −30% al puntaje final
+            {t('continue.penaltyNote')}
           </div>
         )}
       </div>
@@ -71,7 +71,7 @@ export function ContinuePage({ params, go }: ContinuePageProps) {
       {/* Options */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {OPTIONS.map((opt) => {
-          const { id, icon: Icon, label, detail, cost, color } = opt;
+          const { id, icon: Icon, cost, color } = opt;
           const canAfford = balance >= cost;
           return (
             <button
@@ -97,8 +97,8 @@ export function ContinuePage({ params, go }: ContinuePageProps) {
                 <Icon size={20} style={{ color }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="lab-mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{label}</div>
-                <div className="lab-label" style={{ color: 'var(--muted)', marginTop: 2 }}>{detail}</div>
+                <div className="lab-mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{t(`continue.options.${id}.label`)}</div>
+                <div className="lab-label" style={{ color: 'var(--muted)', marginTop: 2 }}>{t(`continue.options.${id}.detail`)}</div>
               </div>
               <div className="lab-mono" style={{ fontSize: 11, color: 'var(--amber)', flexShrink: 0 }}>{cost} 🪙</div>
             </button>
@@ -115,10 +115,10 @@ export function ContinuePage({ params, go }: ContinuePageProps) {
           style={{ opacity: canFree ? 1 : 0.5, cursor: canFree ? 'pointer' : 'not-allowed' }}
           onClick={canFree ? handleContinue : undefined}
         >
-          <IconPlay size={14} /> {canFree ? 'Continuar gratis (×1)' : 'Continúa gratis ya usada'}
+          <IconPlay size={14} /> {canFree ? t('continue.freeButton') : t('continue.freeUsedButton')}
         </button>
         <button className="lab-btn lab-btn-ghost lab-btn-block" type="button" onClick={handleAbandon}>
-          <IconX size={14} /> Abandonar partida
+          <IconX size={14} /> {t('continue.abandon')}
         </button>
       </div>
     </div>
