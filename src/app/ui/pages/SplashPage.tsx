@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { animate } from 'animejs';
+import { createTimeline } from 'animejs';
 import { canUseMotion } from '../../../shared/motion/createTimeline';
 
 const BOOT_LINES = [
@@ -20,10 +20,10 @@ function randDelay(ms: number): number {
 type SplashPageProps = { onDone: () => void };
 
 export function SplashPage({ onDone }: SplashPageProps) {
-  const [step, setStep]             = useState(0);
-  const [done, setDone]             = useState(false);
-  const [transitioning, setTrans]   = useState(false);
-  const flashRef                    = useRef<HTMLDivElement>(null);
+  const [step, setStep]           = useState(0);
+  const [done, setDone]           = useState(false);
+  const [transitioning, setTrans] = useState(false);
+  const lightRef                  = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (step >= BOOT_LINES.length) {
@@ -38,17 +38,25 @@ export function SplashPage({ onDone }: SplashPageProps) {
   function handleTap() {
     if (!done || transitioning) return;
     setTrans(true);
-    if (!canUseMotion() || !flashRef.current) {
+    const el = lightRef.current;
+    if (!canUseMotion() || !el) {
       onDone();
       return;
     }
-    animate(flashRef.current, {
-      scale:    [0, 5],
-      opacity:  [0, 1],
-      duration: 540,
-      ease:     'outExpo',
+    // Traveling-light transition: orb appears, wanders the screen while
+    // growing, then bursts to fill the whole viewport.
+    createTimeline({
+      defaults:   { ease: 'inOutCubic' },
       onComplete: onDone,
-    });
+    })
+      // 1. Appear near the mini-board (upper-right)
+      .add(el, { opacity: 1, width: 70, height: 70, duration: 140 })
+      // 2. Drift to lower-left (boot log area)
+      .add(el, { left: '26%', top: '66%', width: 130, height: 130, duration: 400 })
+      // 3. Sweep back through center
+      .add(el, { left: '55%', top: '42%', width: 310, height: 310, duration: 360, ease: 'inOutQuad' })
+      // 4. Explode outward to fill the screen
+      .add(el, { left: '50%', top: '50%', width: 1900, height: 1900, duration: 460, ease: 'outExpo' });
   }
 
   const progress = step / BOOT_LINES.length;
@@ -58,6 +66,7 @@ export function SplashPage({ onDone }: SplashPageProps) {
       className="screen boot-in"
       role="presentation"
       style={{
+        position:   'relative',
         background: 'var(--bg-deep)',
         padding:    '24px 22px',
         cursor:     done ? 'pointer' : 'default',
@@ -65,25 +74,25 @@ export function SplashPage({ onDone }: SplashPageProps) {
       }}
       onClick={handleTap}
     >
-      {/* Light burst — fixed so it escapes any overflow clip */}
-      <div
-        ref={flashRef}
-        style={{
-          position:        'fixed',
-          width:           '100vmax',
-          height:          '100vmax',
-          top:             '50%',
-          left:            '50%',
-          marginLeft:      '-50vmax',
-          marginTop:       '-50vmax',
-          borderRadius:    '50%',
-          background:      'radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(240,255,255,0.98) 8%, rgba(62,231,214,1) 20%, rgba(62,231,214,0.65) 45%, transparent 70%)',
-          zIndex:          999,
-          pointerEvents:   'none',
-          opacity:         0,
-          willChange:      'transform, opacity',
-        }}
-      />
+      {/* Traveling light — lives inside the splash, blends over content */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 100 }}>
+        <div
+          ref={lightRef}
+          style={{
+            position:     'absolute',
+            width:        0,
+            height:       0,
+            borderRadius: '50%',
+            background:   'radial-gradient(circle, rgba(255,255,255,0.92) 0%, rgba(200,255,252,0.88) 8%, rgba(62,231,214,0.82) 22%, rgba(62,231,214,0.44) 50%, rgba(62,231,214,0.10) 70%, transparent 84%)',
+            transform:    'translate(-50%, -50%)',
+            mixBlendMode: 'screen',
+            opacity:      0,
+            left:         '68%',
+            top:          '33%',
+            willChange:   'width, height, left, top, opacity',
+          }}
+        />
+      </div>
 
       {/* Title */}
       <div style={{ marginTop: 32, position: 'relative', pointerEvents: 'none' }}>
