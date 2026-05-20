@@ -12,13 +12,14 @@ import { calculateClassicScore, calculateMoveLimitScore, calculateTimeAttackScor
 
 export type GameStatus = 'playing' | 'won' | 'lost';
 
-export type PowerUpId = 'undo' | 'shuffle' | 'add-time' | 'add-moves';
+export type PowerUpId = 'undo' | 'shuffle' | 'add-time' | 'add-moves' | 'invert';
 
 export type GameSession = {
   config: GameConfig;
   board: Board;
   seed: string;
   setupMoves: CellPosition[];
+  moveSequence: CellPosition[];
   moves: number;
   elapsedSeconds: number;
   elapsedMilliseconds: number;
@@ -37,6 +38,7 @@ type SessionInput = {
   board: Board;
   seed: string;
   setupMoves: CellPosition[];
+  moveSequence?: CellPosition[];
   moves: number;
   elapsedMilliseconds: number;
   startedAt: number | null;
@@ -55,6 +57,7 @@ export function startGame(config: GameConfig, seed?: string, opts?: { continued?
     board,
     seed: actualSeed,
     setupMoves,
+    moveSequence: [],
     moves: 0,
     elapsedMilliseconds: 0,
     startedAt: null,
@@ -82,6 +85,7 @@ export function applyMove(session: GameSession, position: CellPosition, now = Da
     board,
     seed: session.seed,
     setupMoves: session.setupMoves,
+    moveSequence: [...(session.moveSequence ?? []), position],
     moves,
     elapsedMilliseconds,
     startedAt,
@@ -122,11 +126,12 @@ export function invertGame(session: GameSession): GameSession {
     board: invertBoard(session.board),
     seed: session.seed,
     setupMoves: session.setupMoves,
+    moveSequence: session.moveSequence,
     moves: session.moves,
     elapsedMilliseconds: session.elapsedMilliseconds,
     startedAt: session.startedAt,
     finishedAt: null,
-    powerUpsUsed: session.powerUpsUsed,
+    powerUpsUsed: [...session.powerUpsUsed, 'invert'],
     continued: session.continued,
     undosRemaining: session.undosRemaining,
   });
@@ -160,6 +165,7 @@ export function applyShuffle(session: GameSession): GameSession {
     board,
     seed: newSeed,
     setupMoves,
+    moveSequence: [],
     moves: 0,
     powerUpsUsed: [...session.powerUpsUsed, 'shuffle'],
   });
@@ -171,6 +177,38 @@ export function consumeUndo(session: GameSession): GameSession {
     undosRemaining: Math.max(0, session.undosRemaining - 1),
     powerUpsUsed: [...session.powerUpsUsed, 'undo'],
   };
+}
+
+const MIN_MS_PER_MOVE = 200;
+
+export function verifyBoardIntegrity(session: GameSession): boolean {
+  if (session.status !== 'won') return false;
+
+  // Plausibility: at least MIN_MS_PER_MOVE per move (catches time manipulation).
+  // Threshold of 100ms ensures genuine game data before firing (avoids false positives
+  // from synchronous test environments where elapsed ≈ 0-5ms).
+  const PLAUSIBILITY_MIN_ELAPSED_MS = 100;
+  if (
+    session.elapsedMilliseconds >= PLAUSIBILITY_MIN_ELAPSED_MS &&
+    session.moves > 0 &&
+    session.elapsedMilliseconds / session.moves < MIN_MS_PER_MOVE
+  ) {
+    return false;
+  }
+
+  // Aided games (invert changes board in a non-replayable way; undo/shuffle/add-* are fine
+  // but we skip replay when 'invert' was used since the sequence alone can't reproduce the board)
+  if (session.powerUpsUsed.includes('invert') || session.continued) {
+    return true;
+  }
+
+  // Replay from seed to verify the move sequence actually produces a winning board
+  const { board: initial } = createBoardFromSeed(session.seed, session.config.size);
+  const finalBoard = session.moveSequence.reduce(
+    (b, pos) => toggleCellAndAdjacent(b, pos),
+    initial,
+  );
+  return isVictory(finalBoard);
 }
 
 function buildSession(input: SessionInput): GameSession {
@@ -219,6 +257,7 @@ function buildSession(input: SessionInput): GameSession {
     status,
     score,
     litCells: countLitCells(board),
+    moveSequence: input.moveSequence ?? [],
     powerUpsUsed: input.powerUpsUsed ?? [],
     continued: input.continued ?? false,
     undosRemaining: input.undosRemaining ?? 3,

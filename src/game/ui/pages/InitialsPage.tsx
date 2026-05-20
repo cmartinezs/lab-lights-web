@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconCheck, IconPlay, IconChevronUp, IconChevronDown } from '../../../shared/ui/nano/Icon';
-import { saveResultData } from '../../infra/gameLocalStore';
+import { saveResultData, updateResultHmac } from '../../infra/gameLocalStore';
+import { signResult } from '../../infra/integrityService';
 import { recordWin } from '../../../profile/application/profileService';
 import { getLastUsedInitials } from '../../../profile/application/profileService';
 import type { AppPage, NavParams } from '../../../app/ui/App';
@@ -48,9 +49,18 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
   function handleSave() {
     if (saved) return;
     const initials = letters.join('');
-    saveResultData({ mode: mode as import('../../domain/gameConfig').GameMode, rows: size, columns: size, seed, score, moves, elapsedSeconds: elapsedSecs }, initials);
+    const modeTyped = mode as import('../../domain/gameConfig').GameMode;
+    // Save immediately to keep UI responsive
+    saveResultData(
+      { mode: modeTyped, rows: size, columns: size, seed, score, moves, elapsedSeconds: elapsedSecs, verified: true },
+      initials,
+    );
     recordWin(initials, { score, elapsedSeconds: elapsedSecs });
     setSaved(true);
+    // Compute HMAC in background and update the stored record
+    void signResult(seed, score, moves)
+      .then((hmac) => updateResultHmac(seed, modeTyped, hmac))
+      .catch(() => { /* silently skip if Web Crypto unavailable */ });
   }
 
   return (

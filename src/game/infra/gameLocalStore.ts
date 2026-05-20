@@ -12,6 +12,8 @@ export type GameResultRecord = {
   elapsedSeconds: number;
   seed: string;
   createdAt: string;
+  verified: boolean;
+  hmac?: string;
 };
 
 function modeKey(mode: GameMode): string {
@@ -87,6 +89,7 @@ export function saveResult(session: GameSession, initials: string): GameResultRe
     elapsedSeconds: session.elapsedMilliseconds / 1000,
     seed: session.seed,
     createdAt: new Date().toISOString(),
+    verified: false,
   };
 
   const updated = [record, ...all];
@@ -106,6 +109,8 @@ export type SaveResultData = {
   score: number;
   moves: number;
   elapsedSeconds: number;
+  verified?: boolean;
+  hmac?: string;
 };
 
 export function saveResultData(data: SaveResultData, initials: string): GameResultRecord {
@@ -127,6 +132,8 @@ export function saveResultData(data: SaveResultData, initials: string): GameResu
     elapsedSeconds: data.elapsedSeconds,
     seed: data.seed,
     createdAt: new Date().toISOString(),
+    verified: data.verified ?? false,
+    hmac: data.hmac,
   };
 
   const updated = [record, ...all];
@@ -144,8 +151,17 @@ export function loadResults(config: GameConfig): GameResultRecord[] {
   );
 }
 
+export function updateResultHmac(seed: string, mode: GameMode, hmac: string) {
+  const all = parseJsonArray(globalThis.localStorage?.getItem(modeKey(mode)))
+    .filter(isGameResultRecord);
+  const updated = all.map((r) => (r.seed === seed ? { ...r, hmac } : r));
+  globalThis.localStorage?.setItem(modeKey(mode), JSON.stringify(updated));
+}
+
 export function loadAllModeResults(mode: GameMode): GameResultRecord[] {
-  return parseJsonArray(globalThis.localStorage?.getItem(modeKey(mode))).filter(isGameResultRecord);
+  return parseJsonArray(globalThis.localStorage?.getItem(modeKey(mode)))
+    .filter(isGameResultRecord)
+    .filter((r) => r.verified !== false);
 }
 
 export function sortResults(results: GameResultRecord[]): GameResultRecord[] {
@@ -264,5 +280,6 @@ function isGameResultRecord(value: unknown): value is GameResultRecord {
     typeof c.elapsedSeconds === 'number' &&
     typeof c.seed === 'string' &&
     typeof c.createdAt === 'string'
+    // verified is optional for backwards compat with pre-R4 records
   );
 }

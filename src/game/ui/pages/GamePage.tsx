@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   applyMove, applyAddTime, applyAddMoves, applyShuffle, consumeUndo,
-  invertGame, restartGame, startGame, tickGame,
+  invertGame, restartGame, startGame, tickGame, verifyBoardIntegrity,
   type GameSession,
 } from '../../application/gameSession';
 import type { CellPosition } from '../../domain/board';
@@ -29,6 +29,7 @@ type GameResultParams = {
   seed: string;
   powerUpsUsed: string[];
   continued: boolean;
+  verified: boolean;
 };
 
 type GamePageProps = {
@@ -382,5 +383,6 @@ function toResultParams(session: GameSession): GameResultParams {
     seed:           session.seed,
     powerUpsUsed:   session.powerUpsUsed,
     continued:      session.continued,
+    verified:       verifyBoardIntegrity(session),
   };
 }

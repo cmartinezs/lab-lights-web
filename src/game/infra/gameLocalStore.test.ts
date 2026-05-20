@@ -31,6 +31,7 @@ function createResult(overrides: Partial<GameResultRecord>): GameResultRecord {
     elapsedSeconds: 0,
     seed: 'seed',
     createdAt: '2026-05-20T00:00:00.000Z',
+    verified: true,
     ...overrides,
   };
 }

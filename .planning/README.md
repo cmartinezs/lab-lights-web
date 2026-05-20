@@ -37,8 +37,6 @@ When a prompt contains one of these parameters (at the start or end):
 
 | ID | Prefijo | Nombre | Prioridad |
 |----|---------|--------|-----------|
-| [003](active/003-roadmap-r2-local-mvp-plus/README.md) | R2 | MVP+ local | Secuencial / MVP+ |
-| [005](active/005-roadmap-r4-local-economy/README.md) | R4 | Economía local | Secuencial |
 | [006](active/006-roadmap-r5-online-core/README.md) | R5 | Online core | Secuencial / Beta competitiva |
 | [007](active/007-roadmap-r6-sync-resilience/README.md) | R6 | Sincronización y resiliencia | Secuencial |
 | [008](active/008-roadmap-r7-advanced-modes/README.md) | R7 | Modos avanzados | Secuencial |
@@ -52,6 +50,7 @@ When a prompt contains one of these parameters (at the start or end):
 | [001](finished/001-roadmap-r0-technical-foundation/README.md) | R0 | Fundación técnica | 2026-05-19 |
 | [002](finished/002-roadmap-r1-local-mvp/README.md) | R1 | MVP local | 2026-05-19 |
 | [004](finished/004-roadmap-r3-base-variants/README.md) | R3 | Variantes base | 2026-05-20 |
+| [005](finished/005-roadmap-r4-local-economy/README.md) | R4 | Economía local | 2026-05-20 |
 
 ---
 

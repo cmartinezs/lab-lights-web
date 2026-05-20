@@ -13,10 +13,10 @@ Después del MVP+ local, el juego necesita variedad y desafío antes de introduc
 
 ## Approximate Scope
 
-- [ ] `src/game/domain/` — reglas parametrizables por tamaño, tiempo y movimientos.
-- [ ] `src/game/application/` — configuración de partida.
-- [ ] `src/game/ui/` — selección de modo, configuración y resultado extendido.
-- [ ] `src/rankings/` — separación local por modo/configuración.
+- [x] `src/game/domain/` — reglas parametrizables por tamaño, tiempo y movimientos.
+- [x] `src/game/application/` — configuración de partida.
+- [x] `src/game/ui/` — selección de modo, configuración y resultado extendido.
+- [x] `src/rankings/` — separación local por modo/configuración.
 
 ## Initiator
 
@@ -26,7 +26,7 @@ Después del MVP+ local, el juego necesita variedad y desafío antes de introduc
 
 ## Next Step
 
-- [ ] Ejecutar scopes solo cuando R2 esté cerrado.
+- [x] Ejecutar scopes solo cuando R2 esté cerrado.
 
 ### Open Questions
 

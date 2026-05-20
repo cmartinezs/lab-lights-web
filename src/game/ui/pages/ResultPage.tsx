@@ -24,17 +24,18 @@ export function ResultPage({ params, go }: ResultPageProps) {
   const seed          = typeof params.seed === 'string' ? params.seed : '';
   const powerUpsUsed  = Array.isArray(params.powerUpsUsed) ? params.powerUpsUsed : [];
   const continued     = params.continued === true;
+  const verified      = params.verified !== false;
   const aided         = powerUpsUsed.length > 0 || continued;
 
-  const coinsEarned = win ? Math.round(score / 200) : 0;
+  const coinsEarned = win && verified ? Math.round(score / 200) : 0;
   const creditedRef = useRef(false);
 
   useEffect(() => {
-    if (win && coinsEarned > 0 && !creditedRef.current) {
+    if (win && verified && coinsEarned > 0 && !creditedRef.current) {
       creditedRef.current = true;
       earnCoins(coinsEarned);
     }
-  }, [win, coinsEarned]);
+  }, [win, verified, coinsEarned]);
 
   const handlePlayAgain = useCallback(() => {
     go('game', { mode, size, seed });
@@ -164,7 +165,7 @@ export function ResultPage({ params, go }: ResultPageProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto' }}>
         {win ? (
           <>
-            {!aided ? (
+            {!aided && verified ? (
               <button className="lab-btn lab-btn-primary lab-btn-block lab-btn-lg" type="button" onClick={handleInitials}>
                 <IconStar size={16} /> {t('result.cta.initials')}
               </button>

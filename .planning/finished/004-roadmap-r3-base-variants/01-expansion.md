@@ -1,13 +1,13 @@
 # EXPANSION: R3 - Variantes base
 
-> **Status:** Expansion written, not executed  
+> **Status:** DONE  
 > [← README.md](README.md)
 
 ## Scope Summary
 
 | # | Scope | SDLC Phase(s) | Depends On | Status |
 |---|---|---|---|---|
-| 01 | Base variants | R / S / V / T | R2 | PENDING |
+| 01 | Base variants | R / S / V / T | R2 | DONE |
 
 ## Dependency Map
 

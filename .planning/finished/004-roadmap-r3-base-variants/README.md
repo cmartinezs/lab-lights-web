@@ -1,6 +1,6 @@
 # Planning 004 - R3 Base Variants
 
-> **Status:** Expansion / Deepening written, not executed  
+> **Status:** DONE — cerrado 2026-05-20  
 > **Source:** `.raw/PRE_ROADMAP.md` → `R3 - Variantes base`
 
 ## Summary
