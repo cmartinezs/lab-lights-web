@@ -4,7 +4,7 @@ import { ScreenHeader } from '../../../shared/ui/components/ScreenHeader';
 import { IconPlay, IconClock, IconBolt, IconUndo, IconBulb, IconShuffle, IconCoin } from '../../../shared/ui/nano/Icon';
 import {
   BOARD_SIZE_MIN, BOARD_SIZE_MAX, calculateTimeLimit, calculateMoveLimit,
-  createGameConfig, type GameMode,
+  createGameConfig, isFixed3x3Mode, type GameMode,
 } from '../../domain/gameConfig';
 import type { AppPage, NavParams } from '../../../app/ui/App';
 
@@ -20,12 +20,12 @@ type ModeConfigPageProps = {
 
 export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageProps) {
   const { t } = useTranslation();
-  const isClassic = modeId === 'classic';
+  const isFixed3x3 = isFixed3x3Mode(modeId as GameMode);
 
   const minSize = BOARD_SIZE_MIN;
   const maxSize = BOARD_SIZE_MAX;
 
-  const [size, setSize] = useState(isClassic ? 3 : 5);
+  const [size, setSize] = useState(isFixed3x3 ? 3 : 5);
   const [timeOn, setTimeOn] = useState(modeId === 'time-attack');
   const [movesOn, setMovesOn] = useState(modeId === 'move-limit');
 
@@ -39,12 +39,10 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
   }
 
   function handleStart() {
-    const gameMode: GameMode = modeId === 'time-attack' ? 'time-attack'
-      : modeId === 'move-limit' ? 'move-limit'
-      : modeId === 'dimensional' ? 'dimensional'
-      : 'classic';
-    const config = createGameConfig(gameMode, { rows: size, columns: size });
-    go('game', { mode: gameMode, size, config });
+    const gameMode = modeId as GameMode;
+    const effectiveSize = isFixed3x3 ? 3 : size;
+    const config = createGameConfig(gameMode, { rows: effectiveSize, columns: effectiveSize });
+    go('game', { mode: gameMode, size: effectiveSize, config });
   }
 
   const modeTitle = t(`mode.${modeKey(modeId)}`);
@@ -66,8 +64,8 @@ export function ModeConfigPage({ modeId = 'classic', go, back }: ModeConfigPageP
           </div>
         </div>
 
-        {/* Board size (not for classic) */}
-        {!isClassic && (
+        {/* Board size (not for fixed-3×3 modes) */}
+        {!isFixed3x3 && (
           <>
             <div style={{ marginTop: 18, marginBottom: 8 }}>
               <div className="lab-kicker">{t('setup.boardSizeKicker')}</div>

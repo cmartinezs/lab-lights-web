@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyChaosPerturbation,
   countLitCells,
   createBoardFromSeed,
   createEmptyBoard,
   getAdjacentPositions,
   isVictory,
   toggleCellAndAdjacent,
+  toggleCellChain,
+  toggleCellMirror,
 } from './board';
 
 const CLASSIC_SIZE = { rows: 3, columns: 3 };
@@ -54,6 +57,63 @@ describe('classic board rules', () => {
 
     expect(setupMoves.length).toBeGreaterThan(0);
     expect(isVictory(solvedBoard)).toBe(true);
+  });
+});
+
+describe('mirror mode (toggleCellMirror)', () => {
+  it('toggles both the clicked row and its horizontal mirror', () => {
+    // Click (0,1) on 3×3 → mirror row = 2. Both rows toggled, shared center column double-flips.
+    const board = toggleCellMirror(createEmptyBoard(CLASSIC_SIZE), { row: 0, column: 1 });
+    // top toggle (0,1): lights 0-0, 0-1, 0-2, 1-1 → 4 on
+    // bottom toggle (2,1): lights 1-1 (flips back), 2-0, 2-1, 2-2 → net -1 +3 = 6 total
+    expect(countLitCells(board)).toBe(6);
+  });
+
+  it('applies only one toggle on the center row of an odd board', () => {
+    // Click (1,1) on 3×3 → mirror row = 1 (same), only one toggle applied
+    const board = toggleCellMirror(createEmptyBoard(CLASSIC_SIZE), { row: 1, column: 1 });
+    expect(countLitCells(board)).toBe(5); // identical to toggleCellAndAdjacent
+  });
+});
+
+describe('chain mode (toggleCellChain)', () => {
+  it('behaves like a standard toggle when no cells flip off', () => {
+    const board = createEmptyBoard(CLASSIC_SIZE);
+    const chain = toggleCellChain(board, { row: 0, column: 0 });
+    const standard = toggleCellAndAdjacent(board, { row: 0, column: 0 });
+    expect(countLitCells(chain)).toBe(countLitCells(standard));
+  });
+
+  it('cascades when cells that were on flip off during primary toggle', () => {
+    // Pre-light (0,1) so it is on when we chain-toggle it
+    const prelit = toggleCellAndAdjacent(createEmptyBoard(CLASSIC_SIZE), { row: 1, column: 1 });
+    const afterChain = toggleCellChain(prelit, { row: 0, column: 1 });
+    // Without chain, toggling (0,1) on the pre-lit board gives some count.
+    const afterStandard = toggleCellAndAdjacent(prelit, { row: 0, column: 1 });
+    // Chain fires cascades from any on→off flips, so result differs from standard.
+    expect(countLitCells(afterChain)).not.toBe(countLitCells(afterStandard));
+  });
+});
+
+describe('chaos perturbation (applyChaosPerturbation)', () => {
+  it('is deterministic for the same seed and index', () => {
+    const board = createEmptyBoard(CLASSIC_SIZE);
+    const a = applyChaosPerturbation(board, 'chaos-seed', 0);
+    const b = applyChaosPerturbation(board, 'chaos-seed', 0);
+    expect(a.cells.map((c) => c.state)).toEqual(b.cells.map((c) => c.state));
+  });
+
+  it('produces different outcomes for different perturbIndex values', () => {
+    const board = createEmptyBoard(CLASSIC_SIZE);
+    const a = applyChaosPerturbation(board, 'chaos-seed', 0);
+    const b = applyChaosPerturbation(board, 'chaos-seed', 1);
+    expect(a.cells.map((c) => c.state)).not.toEqual(b.cells.map((c) => c.state));
+  });
+
+  it('always lights at least one cell on an empty board', () => {
+    const board = createEmptyBoard(CLASSIC_SIZE);
+    const after = applyChaosPerturbation(board, 'chaos-seed', 0);
+    expect(countLitCells(after)).toBeGreaterThan(0);
   });
 });
 

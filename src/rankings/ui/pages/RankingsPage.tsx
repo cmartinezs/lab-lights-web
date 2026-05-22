@@ -21,6 +21,11 @@ const MODES: { mode: GameMode; label: string; hasSizes: boolean; hasOnline: bool
   { mode: 'dimensional', label: 'Dimensional', hasSizes: true,  hasOnline: false },
   { mode: 'time-attack', label: 'Time Attack', hasSizes: true,  hasOnline: false },
   { mode: 'move-limit',  label: 'Move Limit',  hasSizes: true,  hasOnline: false },
+  { mode: 'blind',       label: 'Blind',       hasSizes: false, hasOnline: false },
+  { mode: 'mirror',      label: 'Mirror',      hasSizes: false, hasOnline: false },
+  { mode: 'chaos',       label: 'Chaos',       hasSizes: false, hasOnline: false },
+  { mode: 'chain',       label: 'Chain',       hasSizes: false, hasOnline: false },
+  { mode: 'puzzle',      label: 'Puzzle',      hasSizes: false, hasOnline: false },
 ];
 
 // ── Online ranking tab ───────────────────────────────────────────
@@ -173,7 +178,7 @@ export function RankingsPage({ go }: RankingsPageProps) {
 
   const localResults: GameResultRecord[] = modeInfo.hasSizes
     ? loadResults({ mode: activeMode, size: { rows: activeSize, columns: activeSize } })
-    : loadAllModeResults('classic');
+    : loadAllModeResults(activeMode);
 
   const availableSizes = Array.from(
     { length: BOARD_SIZE_MAX - BOARD_SIZE_MIN + 1 },

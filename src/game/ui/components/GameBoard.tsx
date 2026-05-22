@@ -5,10 +5,11 @@ import type { Board, BoardCell, CellPosition } from '../../domain/board';
 type GameBoardProps = {
   board: Board;
   disabled?: boolean;
+  blind?: boolean;
   onCellPress: (position: CellPosition) => void;
 };
 
-export function GameBoard({ board, disabled = false, onCellPress }: GameBoardProps) {
+export function GameBoard({ board, disabled = false, blind = false, onCellPress }: GameBoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export function GameBoard({ board, disabled = false, onCellPress }: GameBoardPro
         <BoardCellButton
           key={cell.id}
           cell={cell}
+          blind={blind}
           disabled={disabled}
           onCellPress={onCellPress}
         />
@@ -57,14 +59,16 @@ export function GameBoard({ board, disabled = false, onCellPress }: GameBoardPro
 const BoardCellButton = memo(function BoardCellButton({
   cell,
   disabled,
+  blind,
   onCellPress,
 }: {
   cell: BoardCell;
   disabled: boolean;
+  blind: boolean;
   onCellPress: (position: CellPosition) => void;
 }) {
   const cellRef = useRef<HTMLButtonElement>(null);
-  const isOn = cell.state === 'on';
+  const isOn = !blind && cell.state === 'on';
 
   function handlePress() {
     if (cellRef.current) {
@@ -80,8 +84,8 @@ const BoardCellButton = memo(function BoardCellButton({
   return (
     <button
       ref={cellRef}
-      aria-label={`Sala ${cell.row + 1},${cell.column + 1}: ${isOn ? 'encendida' : 'apagada'}`}
-      aria-pressed={isOn}
+      aria-label={blind ? `Sala ${cell.row + 1},${cell.column + 1}` : `Sala ${cell.row + 1},${cell.column + 1}: ${isOn ? 'encendida' : 'apagada'}`}
+      aria-pressed={blind ? undefined : isOn}
       className={'lab-cell' + (isOn ? ' on' : '')}
       data-board-cell
       data-testid={`cell-${cell.row}-${cell.column}`}

@@ -1,14 +1,17 @@
 import {
+  applyChaosPerturbation,
   countLitCells,
   createBoardFromSeed,
   invertBoard,
   isVictory,
   toggleCellAndAdjacent,
+  toggleCellChain,
+  toggleCellMirror,
   type Board,
   type CellPosition,
 } from '../domain/board';
 import type { GameConfig } from '../domain/gameConfig';
-import { calculateClassicScore, calculateMoveLimitScore, calculateTimeAttackScore } from '../domain/score';
+import { calculateClassicScore, calculateMoveLimitScore, calculatePuzzleScore, calculateTimeAttackScore } from '../domain/score';
 
 export type GameStatus = 'playing' | 'won' | 'lost';
 
@@ -31,6 +34,7 @@ export type GameSession = {
   powerUpsUsed: PowerUpId[];
   continued: boolean;
   undosRemaining: number;
+  puzzlePar: number | null;     // puzzle mode only: setup-move count = known solution length
 };
 
 type SessionInput = {
@@ -46,6 +50,7 @@ type SessionInput = {
   powerUpsUsed?: PowerUpId[];
   continued?: boolean;
   undosRemaining?: number;
+  puzzlePar?: number | null;
 };
 
 export function startGame(config: GameConfig, seed?: string, opts?: { continued?: boolean }): GameSession {
@@ -65,6 +70,7 @@ export function startGame(config: GameConfig, seed?: string, opts?: { continued?
     powerUpsUsed: [],
     continued: opts?.continued ?? false,
     undosRemaining: 3,
+    puzzlePar: config.mode === 'puzzle' ? setupMoves.length : null,
   });
 }
 
@@ -73,8 +79,30 @@ export function applyMove(session: GameSession, position: CellPosition, now = Da
     return session;
   }
 
-  const board = toggleCellAndAdjacent(session.board, position);
+  const mode = session.config.mode;
+  let board = session.board;
+  let extraMoveSeq: CellPosition[] = [];
+
+  if (mode === 'mirror') {
+    // Record both toggled positions so standard replay reconstructs the same board.
+    const mirrorRow = board.size.rows - 1 - position.row;
+    board = toggleCellMirror(board, position);
+    if (mirrorRow !== position.row) {
+      extraMoveSeq = [{ row: mirrorRow, column: position.column }];
+    }
+  } else if (mode === 'chain') {
+    board = toggleCellChain(board, position);
+  } else {
+    board = toggleCellAndAdjacent(board, position);
+  }
+
   const moves = session.moves + 1;
+
+  // Chaos: apply one deterministic perturbation every 3 user moves.
+  if (mode === 'chaos' && moves % 3 === 0) {
+    board = applyChaosPerturbation(board, session.seed, moves / 3 - 1);
+  }
+
   const startedAt = session.startedAt ?? now;
   const won = isVictory(board);
   const finishedAt = won ? now : null;
@@ -85,7 +113,7 @@ export function applyMove(session: GameSession, position: CellPosition, now = Da
     board,
     seed: session.seed,
     setupMoves: session.setupMoves,
-    moveSequence: [...(session.moveSequence ?? []), position],
+    moveSequence: [...(session.moveSequence ?? []), position, ...extraMoveSeq],
     moves,
     elapsedMilliseconds,
     startedAt,
@@ -93,6 +121,7 @@ export function applyMove(session: GameSession, position: CellPosition, now = Da
     powerUpsUsed: session.powerUpsUsed,
     continued: session.continued,
     undosRemaining: session.undosRemaining,
+    puzzlePar: session.puzzlePar,
   });
 }
 
@@ -196,18 +225,21 @@ export function verifyBoardIntegrity(session: GameSession): boolean {
     return false;
   }
 
-  // Aided games (invert changes board in a non-replayable way; undo/shuffle/add-* are fine
-  // but we skip replay when 'invert' was used since the sequence alone can't reproduce the board)
-  if (session.powerUpsUsed.includes('invert') || session.continued) {
+  // Aided games or chaos (chaos perturbations are deterministic but complex to replay here;
+  // the seeded RNG guarantees reproducibility at the server level).
+  if (
+    session.config.mode === 'chaos' ||
+    session.powerUpsUsed.includes('invert') ||
+    session.continued
+  ) {
     return true;
   }
 
-  // Replay from seed to verify the move sequence actually produces a winning board
+  // Replay from seed. Chain mode uses its own toggle function; mirror/puzzle/blind use standard.
+  // (Mirror records both positions in moveSequence, so standard replay reconstructs correctly.)
   const { board: initial } = createBoardFromSeed(session.seed, session.config.size);
-  const finalBoard = session.moveSequence.reduce(
-    (b, pos) => toggleCellAndAdjacent(b, pos),
-    initial,
-  );
+  const toggleFn = session.config.mode === 'chain' ? toggleCellChain : toggleCellAndAdjacent;
+  const finalBoard = session.moveSequence.reduce((b, pos) => toggleFn(b, pos), initial);
   return isVictory(finalBoard);
 }
 
@@ -242,6 +274,11 @@ function buildSession(input: SessionInput): GameSession {
         score = calculateMoveLimitScore(totalCells, moves, remainingMoves);
         break;
       }
+      case 'puzzle': {
+        const par = input.puzzlePar ?? moves;
+        score = calculatePuzzleScore(par, moves, totalCells);
+        break;
+      }
       default:
         score = calculateClassicScore({ totalCells, moves });
     }
@@ -261,6 +298,7 @@ function buildSession(input: SessionInput): GameSession {
     powerUpsUsed: input.powerUpsUsed ?? [],
     continued: input.continued ?? false,
     undosRemaining: input.undosRemaining ?? 3,
+    puzzlePar: input.puzzlePar ?? null,
   };
 }
 

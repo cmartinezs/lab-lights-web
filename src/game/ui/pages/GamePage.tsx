@@ -9,6 +9,7 @@ import type { CellPosition } from '../../domain/board';
 import {
   DEFAULT_GAME_CONFIG, createGameConfig, type GameConfig, type GameMode,
 } from '../../domain/gameConfig';
+import { getPuzzle } from '../../domain/puzzle';
 import {
   loadCurrentSeed, loadSavedConfig, rememberPlayedSeed,
   saveConfig,
@@ -49,10 +50,14 @@ function buildSession(navParams: NavParams): GameSession {
     const size  = typeof navParams.size === 'number' ? navParams.size : 3;
     config = createGameConfig(mode === 'classic' || !mode ? 'classic' : mode, { rows: size, columns: size });
   }
+  const continued = navParams.continued === true;
+  if (config.mode === 'puzzle') {
+    const idx = typeof navParams.puzzleIndex === 'number' ? navParams.puzzleIndex : 0;
+    return startGame(config, getPuzzle(idx).seed, { continued });
+  }
   const fallbackSeed = config.mode === 'classic' ? R3_DEFAULT_SEED
     : `${config.mode}-${config.size.rows}x${config.size.columns}-default`;
   const seed = loadCurrentSeed(config, fallbackSeed);
-  const continued = navParams.continued === true;
   return startGame(config, seed, { continued });
 }
 
@@ -152,14 +157,19 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
   const { config } = session;
   const n = config.size.rows;
   const m = config.size.columns;
-  const timeOn  = config.mode === 'time-attack';
-  const movesOn = config.mode === 'move-limit';
+  const timeOn   = config.mode === 'time-attack';
+  const movesOn  = config.mode === 'move-limit';
+  const isBlind  = config.mode === 'blind';
+  const isChaos  = config.mode === 'chaos';
+  const isPuzzle = config.mode === 'puzzle';
   const baseTime  = timeOn  && config.timeLimit  !== undefined ? config.timeLimit  : 0;
   const baseMoves = movesOn && config.moveLimit !== undefined ? config.moveLimit : 0;
   const timeLeft  = timeOn  ? Math.max(0, baseTime  - session.elapsedSeconds) : 0;
   const movesLeft = movesOn ? Math.max(0, baseMoves - session.moves)          : 0;
   const lights    = session.litCells;
   const displayTime = timeOn ? timeLeft : session.elapsedSeconds;
+  const chaosIn   = isChaos ? (session.moves === 0 ? 3 : 3 - (session.moves % 3) || 3) : 0;
+  const puzzlePar = isPuzzle ? (session.puzzlePar ?? 0) : 0;
 
   function fmtSec(s: number) {
     const mm = Math.floor(s / 60);
@@ -228,9 +238,13 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
             {movesOn ? movesLeft.toString().padStart(2, '0') : session.moves.toString().padStart(2, '0')}
           </div>
         </div>
-        <div className="lab-stat">
-          <div className="stat-label">{t('game.stats.lights')}</div>
-          <div className="stat-value" style={{ fontSize: 16 }}>{lights.toString().padStart(2, '0')}</div>
+        <div className={'lab-stat' + (isPuzzle && session.moves > 0 && session.moves <= puzzlePar ? ' good' : isPuzzle && session.moves > puzzlePar ? ' warn' : '')}>
+          <div className="stat-label">
+            {isPuzzle ? t('game.puzzle.parLabel') : isChaos ? t('game.puzzle.chaosLabel') : t('game.stats.lights')}
+          </div>
+          <div className="stat-value" style={{ fontSize: 16 }}>
+            {isBlind ? '??' : isPuzzle ? puzzlePar.toString().padStart(2, '0') : isChaos ? chaosIn.toString() : lights.toString().padStart(2, '0')}
+          </div>
         </div>
       </div>
 
@@ -254,6 +268,7 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
       >
         <div style={{ height: '90%', aspectRatio: '1 / 1', maxWidth: '90%', width: 'auto' }}>
           <GameBoard
+            blind={isBlind}
             board={session.board}
             disabled={session.status !== 'playing' || paused}
             onCellPress={handleCell}

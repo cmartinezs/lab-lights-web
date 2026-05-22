@@ -79,7 +79,16 @@
       "classic": "CLASSIC",
       "timeAttack": "TIME ATTACK",
       "moveLimit": "MOVE LIMIT",
-      "dimensional": "DIMENSIONAL"
+      "dimensional": "DIMENSIONAL",
+      "blind": "BLIND",
+      "mirror": "MIRROR",
+      "chaos": "CHAOS",
+      "chain": "CHAIN",
+      "puzzle": "PUZZLE"
+    },
+    "puzzle": {
+      "parLabel": "PAR",
+      "chaosLabel": "CAOS EN"
     },
     "stats": {
       "time": "Tiempo",

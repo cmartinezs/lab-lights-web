@@ -26,3 +26,11 @@ export function calculateMoveLimitScore(totalCells: number, moves: number, remai
 
   return Math.round((totalCells * 100) / moves) + remainingMoves * 10;
 }
+
+// Puzzle: classic formula + par-beat bonus (50 pts per move under par).
+export function calculatePuzzleScore(par: number, moves: number, totalCells: number): number {
+  if (moves <= 0) return 0;
+  const base = Math.round((totalCells * 100) / moves);
+  const parBonus = moves <= par ? (par - moves + 1) * 50 : 0;
+  return base + parBonus;
+}

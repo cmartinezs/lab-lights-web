@@ -59,6 +59,44 @@ export function toggleCellAndAdjacent(board: Board, position: CellPosition): Boa
   };
 }
 
+// Mirror: applies toggle at position and its horizontal mirror (opposite row, same column).
+// Both positions use standard toggleCellAndAdjacent. If the mirror lands on the same row
+// (center row of an odd-sized board), only one toggle is applied.
+export function toggleCellMirror(board: Board, position: CellPosition): Board {
+  const mirrorRow = board.size.rows - 1 - position.row;
+  const after = toggleCellAndAdjacent(board, position);
+  if (mirrorRow === position.row) return after;
+  return toggleCellAndAdjacent(after, { row: mirrorRow, column: position.column });
+}
+
+// Chain Reaction: standard toggle followed by one cascade wave.
+// Every cell that flips from on→off in the primary toggle triggers another
+// standard toggle centered on itself.
+export function toggleCellChain(board: Board, position: CellPosition): Board {
+  const before = board;
+  const after = toggleCellAndAdjacent(board, position);
+
+  const chainSources = after.cells.filter((cell) => {
+    const prev = before.cells.find((c) => c.id === cell.id);
+    return prev?.state === 'on' && cell.state === 'off';
+  });
+
+  return chainSources.reduce(
+    (b, cell) => toggleCellAndAdjacent(b, { row: cell.row, column: cell.column }),
+    after,
+  );
+}
+
+// Chaos: applies a deterministic perturbation (seeded random toggle) to the board.
+// Called after every Nth user move; perturbIndex increments each time.
+export function applyChaosPerturbation(board: Board, seed: string, perturbIndex: number): Board {
+  const rng = createSeededRandom(`${seed}-chaos-${perturbIndex}`);
+  const cellIndex = Math.floor(rng() * board.cells.length);
+  const cell = board.cells[cellIndex];
+  if (!cell) return board;
+  return toggleCellAndAdjacent(board, { row: cell.row, column: cell.column });
+}
+
 export function invertBoard(board: Board): Board {
   return {
     ...board,

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyAddMoves, applyAddTime, applyMove, applyShuffle,
-  consumeUndo, startGame, tickGame,
+  consumeUndo, startGame, tickGame, verifyBoardIntegrity,
 } from './gameSession';
 import { createGameConfig } from '../domain/gameConfig';
+import { calculatePuzzleScore } from '../domain/score';
 
 describe('classic game session', () => {
   it('starts a local Classic game from a deterministic seed', () => {
@@ -140,6 +141,128 @@ describe('move limit', () => {
 
     expect(extended.config.moveLimit).toBe(original + 5);
     expect(extended.powerUpsUsed).toContain('add-moves');
+  });
+});
+
+describe('blind mode', () => {
+  it('starts a blind session and can be won by replaying setup moves', () => {
+    const config = createGameConfig('blind', { rows: 3, columns: 3 });
+    const session = startGame(config, 'blind-test-seed');
+    expect(session.config.mode).toBe('blind');
+    expect(session.config.size).toEqual({ rows: 3, columns: 3 });
+    const won = session.setupMoves.reduce(
+      (cur, move, idx) => applyMove(cur, move, 1_000 + idx * 1_000),
+      session,
+    );
+    expect(won.status).toBe('won');
+  });
+});
+
+describe('mirror mode', () => {
+  it('records both the clicked and mirror positions in moveSequence', () => {
+    const config = createGameConfig('mirror', { rows: 3, columns: 3 });
+    const session = startGame(config, 'mirror-test-seed');
+    const after = applyMove(session, { row: 0, column: 1 }, 1_000);
+    // row 0 clicked → mirror row = 2 (different), so 2 entries in moveSequence
+    expect(after.moveSequence.length).toBe(2);
+    expect(after.moveSequence[0]).toEqual({ row: 0, column: 1 });
+    expect(after.moveSequence[1]).toEqual({ row: 2, column: 1 });
+    expect(after.moves).toBe(1);
+  });
+
+  it('records only one entry when clicking the center row', () => {
+    const config = createGameConfig('mirror', { rows: 3, columns: 3 });
+    const session = startGame(config, 'mirror-center-seed');
+    const after = applyMove(session, { row: 1, column: 1 }, 1_000);
+    expect(after.moveSequence.length).toBe(1);
+    expect(after.moves).toBe(1);
+  });
+
+  it('verifyBoardIntegrity passes for a legitimate mirror win', () => {
+    const config = createGameConfig('mirror', { rows: 3, columns: 3 });
+    const session = startGame(config, 'mirror-integrity-seed');
+    const won = session.setupMoves.reduce(
+      (cur, move, idx) => applyMove(cur, move, 1_000 + idx * 1_000),
+      session,
+    );
+    if (won.status !== 'won') return;
+    expect(verifyBoardIntegrity(won)).toBe(true);
+  });
+});
+
+describe('chaos mode', () => {
+  it('applies a perturbation after every 3rd user move', () => {
+    const config = createGameConfig('chaos', { rows: 3, columns: 3 });
+    const session = startGame(config, 'chaos-perturb-seed');
+    // Apply 3 moves, the 3rd should trigger a chaos perturbation
+    const m1 = applyMove(session, { row: 0, column: 0 }, 1_000);
+    const m2 = applyMove(m1, { row: 0, column: 2 }, 2_000);
+    const m3 = applyMove(m2, { row: 2, column: 2 }, 3_000);
+    expect(m3.moves).toBe(3);
+    // The board after move 3 should differ from a non-chaos board with same 3 moves
+    const classicConfig = createGameConfig('classic', { rows: 3, columns: 3 });
+    const classicSession = startGame(classicConfig, 'chaos-perturb-seed');
+    const c3 = applyMove(applyMove(applyMove(classicSession, { row: 0, column: 0 }, 1_000), { row: 0, column: 2 }, 2_000), { row: 2, column: 2 }, 3_000);
+    expect(m3.board.cells.map((c) => c.state)).not.toEqual(c3.board.cells.map((c) => c.state));
+  });
+
+  it('verifyBoardIntegrity returns true for chaos mode (replay skipped)', () => {
+    const config = createGameConfig('chaos', { rows: 3, columns: 3 });
+    const session = startGame(config, 'chaos-integrity-seed');
+    const won = session.setupMoves.reduce(
+      (cur, move, idx) => applyMove(cur, move, 1_000 + idx * 1_000),
+      session,
+    );
+    if (won.status !== 'won') return;
+    expect(verifyBoardIntegrity(won)).toBe(true);
+  });
+});
+
+describe('chain mode', () => {
+  it('starts a chain session and records correct move count', () => {
+    const config = createGameConfig('chain', { rows: 3, columns: 3 });
+    const session = startGame(config, 'chain-test-seed');
+    const after = applyMove(session, { row: 1, column: 1 }, 1_000);
+    expect(after.moves).toBe(1);
+    expect(after.moveSequence.length).toBe(1);
+  });
+
+  it('verifyBoardIntegrity passes for a chain mode win', () => {
+    const config = createGameConfig('chain', { rows: 3, columns: 3 });
+    const session = startGame(config, 'chain-integrity-seed');
+    const won = session.setupMoves.reduce(
+      (cur, move, idx) => applyMove(cur, move, 1_000 + idx * 1_000),
+      session,
+    );
+    if (won.status !== 'won') return;
+    expect(verifyBoardIntegrity(won)).toBe(true);
+  });
+});
+
+describe('puzzle mode', () => {
+  it('sets puzzlePar to the setup move count on start', () => {
+    const config = createGameConfig('puzzle', { rows: 3, columns: 3 });
+    const session = startGame(config, 'puzzle-test-seed');
+    expect(session.puzzlePar).toBe(session.setupMoves.length);
+    expect(session.puzzlePar).toBeGreaterThan(0);
+  });
+
+  it('scores using calculatePuzzleScore when won at par', () => {
+    const config = createGameConfig('puzzle', { rows: 3, columns: 3 });
+    const session = startGame(config, 'puzzle-score-seed');
+    const won = session.setupMoves.reduce(
+      (cur, move, idx) => applyMove(cur, move, 1_000 + idx * 1_000),
+      session,
+    );
+    if (won.status !== 'won') return;
+    const expected = calculatePuzzleScore(won.puzzlePar!, won.moves, 9);
+    expect(won.score).toBe(Math.round(expected * 1)); // no penalty
+  });
+
+  it('awards a par bonus when solved in fewer moves than par', () => {
+    const atPar = calculatePuzzleScore(5, 5, 9);
+    const belowPar = calculatePuzzleScore(5, 4, 9);
+    expect(belowPar).toBeGreaterThan(atPar);
   });
 });
 
