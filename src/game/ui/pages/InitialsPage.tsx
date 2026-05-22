@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IconCheck, IconPlay, IconChevronUp, IconChevronDown } from '../../../shared/ui/nano/Icon';
+import { IconCheck, IconPlay, IconChevronUp, IconChevronDown, IconWifi } from '../../../shared/ui/nano/Icon';
 import { saveResultData, updateResultHmac } from '../../infra/gameLocalStore';
 import { signResult } from '../../infra/integrityService';
 import { recordWin } from '../../../profile/application/profileService';
 import { getLastUsedInitials } from '../../../profile/application/profileService';
 import type { AppPage, NavParams } from '../../../app/ui/App';
+import { isLoggedIn } from '../../../online/application/authService';
+import { submitScore } from '../../../online/application/scoreService';
+import { API_ERROR_CODES, type SubmitScoreRequest } from '../../../online/api/contract';
+import { ApiError } from '../../../online/api/contract';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -13,6 +17,13 @@ type InitialsPageProps = {
   params: NavParams;
   go: (page: AppPage, params?: NavParams) => void;
 };
+
+type SubmitState =
+  | { status: 'idle' }
+  | { status: 'submitting' }
+  | { status: 'submitted'; rank: number | null }
+  | { status: 'rejected'; reason: string }
+  | { status: 'error'; message: string };
 
 export function InitialsPage({ params, go }: InitialsPageProps) {
   const { t } = useTranslation();
@@ -22,12 +33,20 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
   const mode          = typeof params.mode === 'string' ? params.mode : 'classic';
   const size          = typeof params.size === 'number' ? params.size : 3;
   const seed          = typeof params.seed === 'string' ? params.seed : '';
+  const moveSequence  = Array.isArray(params.moveSequence) ? params.moveSequence as { row: number; col: number }[] : [];
+  const powerUpsUsed  = Array.isArray(params.powerUpsUsed) ? params.powerUpsUsed as string[] : [];
+  const continued     = params.continued === true;
 
   const defaultInitials = getLastUsedInitials().padEnd(3, 'A').slice(0, 3).toUpperCase();
   const [letters, setLetters] = useState<string[]>(defaultInitials.split(''));
   const [activeSlot, setActiveSlot] = useState(0);
   const [saved, setSaved] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
+  const [hmacValue, setHmacValue] = useState<string>('');
+  const [submitState, setSubmitState] = useState<SubmitState>({ status: 'idle' });
+
+  // Only classic 3x3 eligible for online ranking in R5
+  const onlineEligible = mode === 'classic' && size === 3 && !continued && !powerUpsUsed.includes('invert');
 
   function pickLetter(letter: string) {
     if (saved) return;
@@ -50,17 +69,57 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
     if (saved) return;
     const initials = letters.join('');
     const modeTyped = mode as import('../../domain/gameConfig').GameMode;
-    // Save immediately to keep UI responsive
     saveResultData(
       { mode: modeTyped, rows: size, columns: size, seed, score, moves, elapsedSeconds: elapsedSecs, verified: true },
       initials,
     );
     recordWin(initials, { score, elapsedSeconds: elapsedSecs });
     setSaved(true);
-    // Compute HMAC in background and update the stored record
+    // Compute HMAC in background and update stored record + keep value for online submit
     void signResult(seed, score, moves)
-      .then((hmac) => updateResultHmac(seed, modeTyped, hmac))
-      .catch(() => { /* silently skip if Web Crypto unavailable */ });
+      .then((hmac) => {
+        updateResultHmac(seed, modeTyped, hmac);
+        setHmacValue(hmac);
+      })
+      .catch(() => {});
+  }
+
+  async function handleSubmitOnline() {
+    if (submitState.status === 'submitting') return;
+    setSubmitState({ status: 'submitting' });
+
+    // Use computed HMAC or fallback empty string (server will reject with HMAC_FAILED)
+    const hmac = hmacValue;
+
+    const req: SubmitScoreRequest = {
+      mode,
+      rows: size,
+      columns: size,
+      seed,
+      score,
+      moves,
+      elapsedSeconds: elapsedSecs,
+      hmac,
+      moveSequence,
+      powerUpsUsed,
+      continued,
+    };
+
+    try {
+      const res = await submitScore(req);
+      if (res.accepted) {
+        setSubmitState({ status: 'submitted', rank: res.rank });
+      } else {
+        setSubmitState({ status: 'rejected', reason: res.reason ?? 'UNKNOWN' });
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.code === API_ERROR_CODES.DUPLICATE_SEED) {
+        setSubmitState({ status: 'rejected', reason: 'DUPLICATE_SEED' });
+      } else {
+        const msg = err instanceof Error ? err.message : t('online.submit.error');
+        setSubmitState({ status: 'error', message: msg });
+      }
+    }
   }
 
   return (
@@ -124,6 +183,7 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
 
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto' }}>
+        {/* Save confirmation alert */}
         {saved && !alertDismissed && (
           <div
             role="alert"
@@ -142,16 +202,24 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
             <button
               aria-label="Cerrar alerta"
               type="button"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--muted)', fontSize: 14, padding: '0 4px', lineHeight: 1,
-              }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14, padding: '0 4px', lineHeight: 1 }}
               onClick={() => setAlertDismissed(true)}
             >
               ✕
             </button>
           </div>
         )}
+
+        {/* Online submit section (shown after saving) */}
+        {saved && onlineEligible && (
+          <OnlineSubmitSection
+            state={submitState}
+            onSubmit={() => { void handleSubmitOnline(); }}
+            onGoProfile={() => go('profile')}
+          />
+        )}
+
+        {/* Primary CTA */}
         {!saved && (
           <button
             aria-label={t('initials.save')}
@@ -183,6 +251,118 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Online Submit Section ────────────────────────────────────────
+
+type OnlineSubmitSectionProps = {
+  state: SubmitState;
+  onSubmit: () => void;
+  onGoProfile: () => void;
+};
+
+function OnlineSubmitSection({ state, onSubmit, onGoProfile }: OnlineSubmitSectionProps) {
+  const { t } = useTranslation();
+  const loggedIn = isLoggedIn();
+
+  if (!loggedIn) {
+    return (
+      <div
+        className="lab-panel"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px', gap: 8,
+        }}
+      >
+        <div className="lab-label" style={{ color: 'var(--muted)', fontSize: 11, flex: 1 }}>
+          {t('online.submit.loginRequired')}
+        </div>
+        <button
+          className="lab-btn lab-btn-sm"
+          style={{ flexShrink: 0 }}
+          type="button"
+          onClick={onGoProfile}
+        >
+          <IconWifi size={13} />
+          {t('online.submit.loginToSubmit')}
+        </button>
+      </div>
+    );
+  }
+
+  if (state.status === 'idle') {
+    return (
+      <button
+        className="lab-btn lab-btn-block"
+        style={{ display: 'flex', alignItems: 'center', gap: 8, borderColor: 'var(--cyan)', color: 'var(--cyan)' }}
+        type="button"
+        onClick={onSubmit}
+      >
+        <IconWifi size={14} />
+        {t('online.submit.cta')}
+      </button>
+    );
+  }
+
+  if (state.status === 'submitting') {
+    return (
+      <button className="lab-btn lab-btn-block" disabled type="button">
+        {t('online.submit.submitting')}
+      </button>
+    );
+  }
+
+  if (state.status === 'submitted') {
+    const rank = state.rank;
+    return (
+      <div
+        className="lab-panel"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px',
+          background: 'var(--cyan-dim)', borderColor: 'var(--cyan)',
+        }}
+      >
+        <IconCheck size={14} style={{ color: 'var(--cyan)', flexShrink: 0 }} />
+        <span className="lab-mono" style={{ fontSize: 12, color: 'var(--cyan)' }}>
+          {rank !== null && rank > 0
+            ? t('online.submit.success', { rank })
+            : t('online.submit.successOutside')}
+        </span>
+      </div>
+    );
+  }
+
+  if (state.status === 'rejected') {
+    const reasonKey = state.reason === 'DUPLICATE_SEED' ? t('online.submit.alreadySubmitted') : t('online.submit.rejected', { reason: state.reason });
+    return (
+      <div
+        className="lab-panel"
+        style={{ padding: '10px 14px', background: 'rgba(255,160,80,0.06)', borderColor: 'var(--amber)' }}
+      >
+        <span className="lab-mono" style={{ fontSize: 11, color: 'var(--amber)' }}>{reasonKey}</span>
+      </div>
+    );
+  }
+
+  // error
+  return (
+    <div
+      className="lab-panel"
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px', gap: 8,
+        background: 'rgba(255,100,80,0.06)', borderColor: 'rgba(255,100,80,0.4)',
+      }}
+    >
+      <span className="lab-label" style={{ fontSize: 11, color: '#ff8060', flex: 1 }}>
+        {state.status === 'error' ? state.message : t('online.submit.error')}
+      </span>
+      <button className="lab-btn lab-btn-sm" style={{ flexShrink: 0 }} type="button" onClick={onSubmit}>
+        {t('online.submit.retry')}
+      </button>
     </div>
   );
 }

@@ -160,5 +160,65 @@
     "save": "Grabar resultado",
     "newGame": "Nueva partida",
     "rankings": "Ver ranking"
+  },
+  "online": {
+    "mockBadge": "MOCK",
+    "account": {
+      "section": "CUENTA ONLINE",
+      "notConnected": "Sin cuenta online",
+      "notConnectedDesc": "Conecta una cuenta para aparecer en el ranking mundial",
+      "connect": "Crear cuenta",
+      "alreadyHave": "Ya tengo cuenta",
+      "username": "Usuario",
+      "referralCode": "Código de referido",
+      "referralCopyHint": "Toca para copiar",
+      "copied": "¡Copiado!",
+      "logout": "Cerrar sesión"
+    },
+    "auth": {
+      "registerTitle": "Crear cuenta",
+      "loginTitle": "Iniciar sesión",
+      "emailLabel": "Email",
+      "emailPlaceholder": "tu@email.com",
+      "usernameLabel": "Usuario",
+      "usernamePlaceholder": "3-16 caracteres",
+      "passwordLabel": "Contraseña",
+      "passwordPlaceholder": "Mínimo 8 caracteres",
+      "referralLabel": "Código de referido",
+      "referralPlaceholder": "LAB-XXXXXXXX (opcional)",
+      "registerBtn": "Crear cuenta",
+      "loginBtn": "Entrar",
+      "cancel": "Cancelar",
+      "switchToLogin": "Ya tengo cuenta →",
+      "switchToRegister": "← Crear cuenta nueva",
+      "loading": "Procesando...",
+      "errorEmailTaken": "Este email ya está registrado",
+      "errorUsernameTaken": "Este nombre de usuario ya está en uso",
+      "errorInvalidCredentials": "Email o contraseña incorrectos",
+      "errorGeneric": "Error de conexión. Inténtalo de nuevo."
+    },
+    "ranking": {
+      "tabOnline": "ONLINE",
+      "tabLocal": "LOCAL",
+      "top100": "TOP 100",
+      "loadingRanking": "Cargando ranking...",
+      "errorRanking": "No se pudo cargar el ranking online",
+      "retryRanking": "Reintentar",
+      "empty": "Nadie ha enviado puntajes aún",
+      "emptyHint": "¡Sé el primero!",
+      "yourRank": "Tu posición: #{{rank}}"
+    },
+    "submit": {
+      "cta": "Publicar en ranking online",
+      "submitting": "Publicando...",
+      "success": "¡Publicado! Posición #{{rank}}",
+      "successOutside": "¡Publicado! Fuera del Top 100",
+      "error": "Error al publicar",
+      "retry": "Reintentar",
+      "loginRequired": "Inicia sesión para publicar en el ranking online",
+      "loginToSubmit": "Conectar y publicar",
+      "rejected": "No aceptado: {{reason}}",
+      "alreadySubmitted": "Ya publicado"
+    }
   }
 }

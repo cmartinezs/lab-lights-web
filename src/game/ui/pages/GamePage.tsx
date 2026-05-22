@@ -27,6 +27,7 @@ type GameResultParams = {
   mode: string;
   size: number;
   seed: string;
+  moveSequence: { row: number; col: number }[];
   powerUpsUsed: string[];
   continued: boolean;
   verified: boolean;
@@ -381,6 +382,7 @@ function toResultParams(session: GameSession): GameResultParams {
     mode:           session.config.mode,
     size:           session.config.size.rows,
     seed:           session.seed,
+    moveSequence:   session.moveSequence.map((p) => ({ row: p.row, col: p.column })),
     powerUpsUsed:   session.powerUpsUsed,
     continued:      session.continued,
     verified:       verifyBoardIntegrity(session),

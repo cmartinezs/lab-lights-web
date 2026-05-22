@@ -1,0 +1,653 @@
+openapi: 3.1.0
+
+info:
+  title: Lab Lights API
+  version: 1.0.0
+  description: |
+    HTTP API del backend Go para Luces del Laboratorio.
+
+    ## Scope R5 — Online Core
+    - Autenticación (register / login / logout)
+    - Perfil de usuario con `referral_code` único
+    - Envío y validación de puntajes Classic 3×3
+    - Ranking online Top 100 (modo Classic)
+
+    ## Autenticación
+    Las rutas protegidas requieren `Authorization: Bearer <jwt>`.
+    El token JWT tiene TTL de 24 horas y es emitido por el servidor tras
+    login o register exitoso. El cliente lo almacena localmente y lo adjunta
+    en cada petición protegida.
+
+    ## Validación de puntajes
+    Al recibir un `POST /v1/scores` el servidor:
+    1. Verifica el HMAC-SHA256 del cliente (integridad básica).
+    2. Reproduce el tablero desde `seed` aplicando `moveSequence`.
+    3. Comprueba que el tablero final sea una victoria (todos los LEDs apagados).
+    4. Calcula el puntaje esperado y lo compara con el enviado (±5% de tolerancia).
+    5. Rechaza partidas con power-ups que alteren la secuencia (`invert`) o que
+       sean continuaciones (`continued = true`).
+
+    ## Errores
+    Todos los errores incluyen un `code` legible por máquina y un `message`
+    en español para mostrar al usuario.
+
+servers:
+  - url: http://localhost:8080/v1
+    description: Servidor Go local (desarrollo)
+  - url: https://api.lab-lights.app/v1
+    description: Producción
+
+security: []
+
+paths:
+
+  # ────────────────────────────────────────────────────────────────
+  # Health
+  # ────────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      summary: Healthcheck
+      operationId: healthCheck
+      tags: [infra]
+      description: |
+        Endpoint público de salud. Devuelve `200 ok` cuando el servicio
+        está disponible. El cliente puede usarlo para detectar
+        conectividad antes de intentar operaciones autenticadas.
+      responses:
+        '200':
+          description: Servicio disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                version: "1.0.0"
+                timestamp: "2026-05-22T12:00:00Z"
+
+  # ────────────────────────────────────────────────────────────────
+  # Auth
+  # ────────────────────────────────────────────────────────────────
+
+  /auth/register:
+    post:
+      summary: Registrar nueva cuenta
+      operationId: register
+      tags: [auth]
+      description: |
+        Crea una cuenta nueva con email, contraseña y nombre de usuario.
+        Al crearla, el servidor genera automáticamente un `referral_code`
+        único del formato `LAB-XXXXXXXX`.
+
+        Si se proporciona `referredBy`, se registra la relación de referido
+        para el sistema de recompensas (R9). En R5 no genera beneficio
+        inmediato pero se almacena para uso futuro.
+
+        **Restricciones de username:**
+        - 3-16 caracteres
+        - Solo letras, números y guión bajo
+        - Insensible a mayúsculas: "LABrat" y "labrat" colisionan
+
+        **Contraseña:** mínimo 8 caracteres. El servidor hashea con bcrypt
+        (costo 12) antes de almacenar — nunca en texto plano.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: "jugador@ejemplo.com"
+              password: "mi-clave-segura-123"
+              username: "LabRat_42"
+      responses:
+        '201':
+          description: Cuenta creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '409':
+          description: Email o username ya registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                emailTaken:
+                  value: { code: EMAIL_TAKEN, message: "Este email ya está registrado" }
+                usernameTaken:
+                  value: { code: USERNAME_TAKEN, message: "Este nombre de usuario ya está en uso" }
+        '422':
+          description: Datos inválidos (formato de email, username, contraseña)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: VALIDATION_ERROR
+                message: "El nombre de usuario debe tener entre 3 y 16 caracteres"
+
+  /auth/login:
+    post:
+      summary: Iniciar sesión
+      operationId: login
+      tags: [auth]
+      description: |
+        Autentica con email y contraseña. Devuelve un nuevo JWT y los datos
+        del perfil. Los tokens anteriores siguen siendo válidos hasta su
+        expiración (el servidor no invalida tokens previos en R5).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "jugador@ejemplo.com"
+              password: "mi-clave-segura-123"
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales incorrectas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: INVALID_CREDENTIALS
+                message: "Email o contraseña incorrectos"
+
+  /auth/logout:
+    post:
+      summary: Cerrar sesión
+      operationId: logout
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      description: |
+        Invalida el token JWT actual en la lista negra del servidor.
+        El cliente debe eliminar el token almacenado localmente
+        independientemente del resultado (401 también implica cerrar sesión).
+      responses:
+        '204':
+          description: Sesión cerrada
+        '401':
+          description: Token inválido o ya expirado (igualmente cerrar sesión local)
+
+  # ────────────────────────────────────────────────────────────────
+  # Profile
+  # ────────────────────────────────────────────────────────────────
+
+  /me:
+    get:
+      summary: Perfil del usuario autenticado
+      operationId: getMe
+      tags: [profile]
+      security:
+        - bearerAuth: []
+      description: |
+        Devuelve los datos del perfil del usuario cuyo token se adjunta.
+        Incluye el `referral_code` generado al registrarse.
+      responses:
+        '200':
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          description: Token ausente, inválido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: UNAUTHORIZED
+                message: "Token inválido o expirado"
+
+  # ────────────────────────────────────────────────────────────────
+  # Scores
+  # ────────────────────────────────────────────────────────────────
+
+  /scores:
+    post:
+      summary: Enviar puntaje para validación y ranking
+      operationId: submitScore
+      tags: [scores]
+      security:
+        - bearerAuth: []
+      description: |
+        Envía el resultado de una partida para su validación autoritativa
+        y, si es aceptado, su inclusión en el ranking online.
+
+        ## Criterios de aceptación
+
+        | Condición | Resultado |
+        |-----------|-----------|
+        | HMAC inválido | Rechazado `HMAC_FAILED` |
+        | Replay no produce victoria | Rechazado `REPLAY_MISMATCH` |
+        | Puntaje calculado difiere >5% | Rechazado `SCORE_MISMATCH` |
+        | `continued = true` | Rechazado `AIDED_GAME` |
+        | `powerUpsUsed` contiene `invert` | Rechazado `AIDED_GAME` |
+        | Seed ya enviada por este usuario | Rechazado `DUPLICATE_SEED` |
+        | Modo no soportado (R5: solo classic 3×3) | Error 422 `INVALID_MODE` |
+        | Velocidad sospechosa (<200ms/movimiento) | Rechazado `SUSPICIOUS_SPEED` |
+
+        ## Respuesta exitosa
+        - `accepted: true` → puntaje guardado y rankeado
+        - `rank` = posición en el Top 100 (1-based). `-1` si queda fuera del top.
+
+        ## Idempotencia
+        Un segundo envío del mismo seed por el mismo usuario devuelve
+        `DUPLICATE_SEED`. El cliente debe marcar la partida local como
+        enviada para no reintentar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitScoreRequest'
+      responses:
+        '201':
+          description: Puntaje aceptado e incluido en el ranking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitScoreResponse'
+              example:
+                submissionId: "550e8400-e29b-41d4-a716-446655440000"
+                accepted: true
+                rank: 7
+        '200':
+          description: Puntaje procesado pero rechazado (validación fallida)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitScoreResponse'
+              example:
+                submissionId: "550e8400-e29b-41d4-a716-446655440001"
+                accepted: false
+                rank: null
+                reason: REPLAY_MISMATCH
+        '401':
+          description: No autenticado
+        '422':
+          description: Solicitud malformada (modo inválido, campos faltantes)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  # ────────────────────────────────────────────────────────────────
+  # Rankings
+  # ────────────────────────────────────────────────────────────────
+
+  /rankings/{mode}:
+    get:
+      summary: Ranking online por modo
+      operationId: getOnlineRanking
+      tags: [rankings]
+      description: |
+        Devuelve el ranking online para el modo especificado.
+        En R5, solo se soporta `classic` con `rows=3&cols=3`.
+
+        El ranking incluye el mejor puntaje por usuario (no todas las partidas).
+        Se actualiza en tiempo real tras cada `POST /v1/scores` aceptado.
+
+        **Límite:** máximo 100 entradas por petición.
+      parameters:
+        - in: path
+          name: mode
+          required: true
+          schema:
+            type: string
+            enum: [classic]
+          description: Modo de juego (R5 solo admite `classic`)
+          example: classic
+        - in: query
+          name: rows
+          required: false
+          schema:
+            type: integer
+            default: 3
+            minimum: 3
+            maximum: 10
+          description: Filas del tablero
+        - in: query
+          name: cols
+          required: false
+          schema:
+            type: integer
+            default: 3
+            minimum: 3
+            maximum: 10
+          description: Columnas del tablero
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 100
+          description: Número máximo de entradas
+      responses:
+        '200':
+          description: Ranking online
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RankingResponse'
+        '404':
+          description: Modo no soportado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                code: UNSUPPORTED_MODE
+                message: "Modo no disponible en el ranking online"
+
+# ──────────────────────────────────────────────────────────────────
+# Components
+# ──────────────────────────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT firmado con HS256. Claims mínimos: `sub` (user ID), `exp` (24h TTL).
+        El cliente lo almacena en localStorage y lo incluye como
+        `Authorization: Bearer <token>` en cada petición protegida.
+
+  schemas:
+
+    # ── Infrastructure ──────────────────────────────────────────
+
+    HealthResponse:
+      type: object
+      required: [status, version, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        version:
+          type: string
+          description: Versión semver del servidor
+          example: "1.0.0"
+        timestamp:
+          type: string
+          format: date-time
+
+    # ── Auth ────────────────────────────────────────────────────
+
+    RegisterRequest:
+      type: object
+      required: [email, password, username]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email único (insensible a mayúsculas)
+        password:
+          type: string
+          minLength: 8
+          description: Mínimo 8 caracteres. El servidor hashea con bcrypt.
+        username:
+          type: string
+          pattern: '^[A-Za-z0-9_]{3,16}$'
+          description: 3-16 caracteres. Solo letras, números y guión bajo.
+          example: "LabRat_42"
+        referredBy:
+          type: string
+          description: |
+            Código de referido del usuario que invitó (opcional).
+            Formato esperado: LAB-XXXXXXXX (8 chars hexadecimales en mayúsculas).
+          example: "LAB-A1B2C3D4"
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AccountDto:
+      type: object
+      required: [id, username, email, referralCode, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único del usuario
+        username:
+          type: string
+          description: Nombre público visible en el ranking
+          example: "LabRat_42"
+        email:
+          type: string
+          format: email
+          description: Email registrado (no mostrar en ranking público)
+        referralCode:
+          type: string
+          description: |
+            Código único generado al crear la cuenta. El usuario puede
+            compartirlo para que otros lo usen al registrarse.
+          example: "LAB-A1B2C3D4"
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      required: [token, account]
+      properties:
+        token:
+          type: string
+          description: JWT con TTL de 24 horas
+        account:
+          $ref: '#/components/schemas/AccountDto'
+
+    MeResponse:
+      type: object
+      required: [account]
+      properties:
+        account:
+          $ref: '#/components/schemas/AccountDto'
+
+    # ── Scores ──────────────────────────────────────────────────
+
+    SubmitScoreRequest:
+      type: object
+      required:
+        - mode
+        - rows
+        - columns
+        - seed
+        - score
+        - moves
+        - elapsedSeconds
+        - hmac
+        - moveSequence
+        - powerUpsUsed
+        - continued
+      properties:
+        mode:
+          type: string
+          enum: [classic]
+          description: En R5 solo se acepta `classic`
+        rows:
+          type: integer
+          enum: [3]
+          description: Filas del tablero (R5 = 3)
+        columns:
+          type: integer
+          enum: [3]
+          description: Columnas del tablero (R5 = 3)
+        seed:
+          type: string
+          description: |
+            Seed determinístico usado para generar el estado inicial del tablero.
+            Debe empezar con `classic-3x3-` para ser aceptado en R5.
+        score:
+          type: integer
+          minimum: 0
+          description: Puntaje calculado por el cliente (el servidor lo revalida)
+        moves:
+          type: integer
+          minimum: 1
+          description: Número total de movimientos realizados
+        elapsedSeconds:
+          type: number
+          minimum: 0
+          description: Tiempo total en segundos (puede tener decimales)
+        hmac:
+          type: string
+          description: |
+            HMAC-SHA256 en Base64 calculado sobre la cadena `{seed}:{score}:{moves}`
+            usando la clave compartida `lab-lights-integrity-v1-k7x9q2p`.
+            El servidor recalcula el HMAC con la misma clave para verificar integridad.
+        moveSequence:
+          type: array
+          description: |
+            Secuencia ordenada de celdas tocadas que produce el tablero ganador
+            cuando se reproduce desde el seed inicial.
+          items:
+            type: object
+            required: [row, col]
+            properties:
+              row:
+                type: integer
+                minimum: 0
+                maximum: 9
+              col:
+                type: integer
+                minimum: 0
+                maximum: 9
+        powerUpsUsed:
+          type: array
+          description: |
+            Lista de IDs de power-ups utilizados durante la partida.
+            Si contiene `invert`, el puntaje es rechazado (`AIDED_GAME`).
+            `undo`, `shuffle`, `add-time`, `add-moves` no causan rechazo
+            pero quedan registrados para análisis.
+          items:
+            type: string
+            enum: [undo, shuffle, add-time, add-moves, invert]
+        continued:
+          type: boolean
+          description: |
+            `true` si el jugador usó una continuación tras perder.
+            Las partidas con `continued = true` son rechazadas (`AIDED_GAME`).
+
+    SubmitScoreResponse:
+      type: object
+      required: [submissionId, accepted]
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+          description: ID único de la submission (útil para soporte/debug)
+        accepted:
+          type: boolean
+          description: "`true` si el puntaje pasó todas las validaciones"
+        rank:
+          type: integer
+          nullable: true
+          description: |
+            Posición en el Top 100 (1-based). `null` o `-1` si el puntaje
+            no entra en el top o si `accepted = false`.
+        reason:
+          type: string
+          nullable: true
+          description: |
+            Código de rechazo cuando `accepted = false`.
+            Posibles valores: HMAC_FAILED, REPLAY_MISMATCH, SCORE_MISMATCH,
+            AIDED_GAME, DUPLICATE_SEED, SUSPICIOUS_SPEED.
+
+    # ── Rankings ────────────────────────────────────────────────
+
+    RankingEntry:
+      type: object
+      required: [rank, username, score, moves, elapsedSeconds, submittedAt]
+      properties:
+        rank:
+          type: integer
+          description: Posición (1-based)
+        username:
+          type: string
+          description: Nombre público del jugador
+        score:
+          type: integer
+          description: Mejor puntaje aceptado del usuario para este modo/tamaño
+        moves:
+          type: integer
+          description: Movimientos de esa partida
+        elapsedSeconds:
+          type: number
+          description: Tiempo en segundos de esa partida
+        submittedAt:
+          type: string
+          format: date-time
+
+    RankingResponse:
+      type: object
+      required: [mode, rows, columns, entries, updatedAt]
+      properties:
+        mode:
+          type: string
+        rows:
+          type: integer
+        columns:
+          type: integer
+        entries:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/RankingEntry'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Cuándo se actualizó por última vez el ranking
+
+    # ── Errors ──────────────────────────────────────────────────
+
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Código de error legible por máquina
+          enum:
+            - EMAIL_TAKEN
+            - USERNAME_TAKEN
+            - INVALID_CREDENTIALS
+            - UNAUTHORIZED
+            - VALIDATION_ERROR
+            - REPLAY_MISMATCH
+            - HMAC_FAILED
+            - SCORE_MISMATCH
+            - AIDED_GAME
+            - DUPLICATE_SEED
+            - SUSPICIOUS_SPEED
+            - INVALID_MODE
+            - UNSUPPORTED_MODE
+            - INTERNAL_ERROR
+        message:
+          type: string
+          description: Mensaje legible por humano (en español)
