@@ -219,6 +219,23 @@
       "loginToSubmit": "Conectar y publicar",
       "rejected": "No aceptado: {{reason}}",
       "alreadySubmitted": "Ya publicado"
+    },
+    "sync": {
+      "queued": "En cola",
+      "syncingNow": "Sincronizando...",
+      "pendingOffline": "Se enviará cuando estés en línea",
+      "retryInProfile": "Ve a tu perfil para reintentar"
+    },
+    "history": {
+      "section": "HISTORIAL ONLINE",
+      "loading": "Cargando historial...",
+      "error": "No se pudo cargar el historial",
+      "retry": "Reintentar",
+      "empty": "Sin partidas enviadas aún",
+      "outside": "Fuera del top",
+      "pendingSection": "PARTIDAS PENDIENTES",
+      "pendingEmpty": "Sin partidas pendientes",
+      "retryAll": "Reintentar pendientes"
     }
   }
 }

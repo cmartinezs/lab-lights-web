@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IconCheck, IconPlay, IconChevronUp, IconChevronDown, IconWifi } from '../../../shared/ui/nano/Icon';
+import { IconCheck, IconPlay, IconChevronUp, IconChevronDown, IconWifi, IconCoin } from '../../../shared/ui/nano/Icon';
 import { saveResultData, updateResultHmac } from '../../infra/gameLocalStore';
 import { signResult } from '../../infra/integrityService';
 import { recordWin } from '../../../profile/application/profileService';
 import { getLastUsedInitials } from '../../../profile/application/profileService';
 import type { AppPage, NavParams } from '../../../app/ui/App';
 import { isLoggedIn } from '../../../online/application/authService';
-import { submitScore } from '../../../online/application/scoreService';
-import { API_ERROR_CODES, type SubmitScoreRequest } from '../../../online/api/contract';
-import { ApiError } from '../../../online/api/contract';
+import { enqueueAndSync } from '../../../online/application/syncService';
+import type { SubmitScoreRequest } from '../../../online/api/contract';
+import type { SyncQueueEntry } from '../../../online/infra/syncQueue';
+import { isOnline } from '../../../online/infra/networkStatus';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -17,13 +18,6 @@ type InitialsPageProps = {
   params: NavParams;
   go: (page: AppPage, params?: NavParams) => void;
 };
-
-type SubmitState =
-  | { status: 'idle' }
-  | { status: 'submitting' }
-  | { status: 'submitted'; rank: number | null }
-  | { status: 'rejected'; reason: string }
-  | { status: 'error'; message: string };
 
 export function InitialsPage({ params, go }: InitialsPageProps) {
   const { t } = useTranslation();
@@ -43,9 +37,10 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
   const [saved, setSaved] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [hmacValue, setHmacValue] = useState<string>('');
-  const [submitState, setSubmitState] = useState<SubmitState>({ status: 'idle' });
+  const [syncEntry, setSyncEntry] = useState<SyncQueueEntry | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
-  // Only classic 3x3 eligible for online ranking in R5
+  // Only classic 3x3 without aids is eligible for online ranking in R5/R6
   const onlineEligible = mode === 'classic' && size === 3 && !continued && !powerUpsUsed.includes('invert');
 
   function pickLetter(letter: string) {
@@ -75,7 +70,6 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
     );
     recordWin(initials, { score, elapsedSeconds: elapsedSecs });
     setSaved(true);
-    // Compute HMAC in background and update stored record + keep value for online submit
     void signResult(seed, score, moves)
       .then((hmac) => {
         updateResultHmac(seed, modeTyped, hmac);
@@ -84,12 +78,9 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
       .catch(() => {});
   }
 
-  async function handleSubmitOnline() {
-    if (submitState.status === 'submitting') return;
-    setSubmitState({ status: 'submitting' });
-
-    // Use computed HMAC or fallback empty string (server will reject with HMAC_FAILED)
-    const hmac = hmacValue;
+  async function handlePublishOnline() {
+    if (syncing) return;
+    setSyncing(true);
 
     const req: SubmitScoreRequest = {
       mode,
@@ -99,26 +90,17 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
       score,
       moves,
       elapsedSeconds: elapsedSecs,
-      hmac,
+      hmac: hmacValue,
       moveSequence,
       powerUpsUsed,
       continued,
     };
 
     try {
-      const res = await submitScore(req);
-      if (res.accepted) {
-        setSubmitState({ status: 'submitted', rank: res.rank });
-      } else {
-        setSubmitState({ status: 'rejected', reason: res.reason ?? 'UNKNOWN' });
-      }
-    } catch (err) {
-      if (err instanceof ApiError && err.code === API_ERROR_CODES.DUPLICATE_SEED) {
-        setSubmitState({ status: 'rejected', reason: 'DUPLICATE_SEED' });
-      } else {
-        const msg = err instanceof Error ? err.message : t('online.submit.error');
-        setSubmitState({ status: 'error', message: msg });
-      }
+      const entry = await enqueueAndSync(req);
+      setSyncEntry(entry);
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -210,11 +192,12 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
           </div>
         )}
 
-        {/* Online submit section (shown after saving) */}
+        {/* Online sync section */}
         {saved && onlineEligible && (
-          <OnlineSubmitSection
-            state={submitState}
-            onSubmit={() => { void handleSubmitOnline(); }}
+          <OnlineSyncSection
+            syncEntry={syncEntry}
+            syncing={syncing}
+            onPublish={() => { void handlePublishOnline(); }}
             onGoProfile={() => go('profile')}
           />
         )}
@@ -255,36 +238,28 @@ export function InitialsPage({ params, go }: InitialsPageProps) {
   );
 }
 
-// ── Online Submit Section ────────────────────────────────────────
+// ── Online Sync Section ─────────────────────────────────────────
 
-type OnlineSubmitSectionProps = {
-  state: SubmitState;
-  onSubmit: () => void;
+type OnlineSyncSectionProps = {
+  syncEntry: SyncQueueEntry | null;
+  syncing: boolean;
+  onPublish: () => void;
   onGoProfile: () => void;
 };
 
-function OnlineSubmitSection({ state, onSubmit, onGoProfile }: OnlineSubmitSectionProps) {
+function OnlineSyncSection({ syncEntry, syncing, onPublish, onGoProfile }: OnlineSyncSectionProps) {
   const { t } = useTranslation();
   const loggedIn = isLoggedIn();
+  const online = isOnline();
 
+  // Not logged in
   if (!loggedIn) {
     return (
-      <div
-        className="lab-panel"
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 14px', gap: 8,
-        }}
-      >
+      <div className="lab-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', gap: 8 }}>
         <div className="lab-label" style={{ color: 'var(--muted)', fontSize: 11, flex: 1 }}>
           {t('online.submit.loginRequired')}
         </div>
-        <button
-          className="lab-btn lab-btn-sm"
-          style={{ flexShrink: 0 }}
-          type="button"
-          onClick={onGoProfile}
-        >
+        <button className="lab-btn lab-btn-sm" style={{ flexShrink: 0 }} type="button" onClick={onGoProfile}>
           <IconWifi size={13} />
           {t('online.submit.loginToSubmit')}
         </button>
@@ -292,77 +267,98 @@ function OnlineSubmitSection({ state, onSubmit, onGoProfile }: OnlineSubmitSecti
     );
   }
 
-  if (state.status === 'idle') {
+  // Idle — show publish button
+  if (!syncEntry) {
     return (
       <button
         className="lab-btn lab-btn-block"
+        disabled={syncing}
         style={{ display: 'flex', alignItems: 'center', gap: 8, borderColor: 'var(--cyan)', color: 'var(--cyan)' }}
         type="button"
-        onClick={onSubmit}
+        onClick={onPublish}
       >
         <IconWifi size={14} />
-        {t('online.submit.cta')}
+        {syncing ? t('online.submit.submitting') : t('online.submit.cta')}
       </button>
     );
   }
 
-  if (state.status === 'submitting') {
-    return (
-      <button className="lab-btn lab-btn-block" disabled type="button">
-        {t('online.submit.submitting')}
-      </button>
-    );
-  }
+  const { status, result, rewards, failureReason } = syncEntry;
 
-  if (state.status === 'submitted') {
-    const rank = state.rank;
+  // Pending (offline) — queued for later
+  if (status === 'pending') {
     return (
-      <div
-        className="lab-panel"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 14px',
-          background: 'var(--cyan-dim)', borderColor: 'var(--cyan)',
-        }}
-      >
-        <IconCheck size={14} style={{ color: 'var(--cyan)', flexShrink: 0 }} />
-        <span className="lab-mono" style={{ fontSize: 12, color: 'var(--cyan)' }}>
-          {rank !== null && rank > 0
-            ? t('online.submit.success', { rank })
-            : t('online.submit.successOutside')}
-        </span>
+      <div className="lab-panel" style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <IconWifi size={14} style={{ color: 'var(--amber)', flexShrink: 0 }} />
+        <div>
+          <div className="lab-mono" style={{ fontSize: 11, color: 'var(--amber)' }}>{t('online.sync.queued')}</div>
+          <div className="lab-label" style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
+            {online ? t('online.sync.syncingNow') : t('online.sync.pendingOffline')}
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (state.status === 'rejected') {
-    const reasonKey = state.reason === 'DUPLICATE_SEED' ? t('online.submit.alreadySubmitted') : t('online.submit.rejected', { reason: state.reason });
+  // Syncing in progress
+  if (status === 'syncing') {
     return (
-      <div
-        className="lab-panel"
-        style={{ padding: '10px 14px', background: 'rgba(255,160,80,0.06)', borderColor: 'var(--amber)' }}
-      >
-        <span className="lab-mono" style={{ fontSize: 11, color: 'var(--amber)' }}>{reasonKey}</span>
+      <div className="lab-panel" style={{ padding: '10px 14px' }}>
+        <span className="lab-mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{t('online.submit.submitting')}</span>
       </div>
     );
   }
 
-  // error
+  // Synced successfully
+  if (status === 'synced' && result) {
+    const rank = result.rank;
+    const totalCoins = rewards.reduce((s, r) => s + r.coins, 0);
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="lab-panel" style={{ padding: '10px 14px', background: 'var(--cyan-dim)', borderColor: 'var(--cyan)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconCheck size={14} style={{ color: 'var(--cyan)', flexShrink: 0 }} />
+          <span className="lab-mono" style={{ fontSize: 12, color: 'var(--cyan)' }}>
+            {rank !== null && rank > 0
+              ? t('online.submit.success', { rank })
+              : t('online.submit.successOutside')}
+          </span>
+        </div>
+        {totalCoins > 0 && (
+          <div className="lab-panel" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconCoin size={14} style={{ color: 'var(--amber)', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              {rewards.map((r) => (
+                <div key={r.type} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span className="lab-label" style={{ fontSize: 11, color: 'var(--muted)' }}>{r.label}</span>
+                  <span className="lab-mono" style={{ fontSize: 11, color: 'var(--amber)' }}>+{r.coins}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Rejected
+  if (status === 'rejected') {
+    const msg = failureReason === 'DUPLICATE_SEED'
+      ? t('online.submit.alreadySubmitted')
+      : t('online.submit.rejected', { reason: failureReason ?? 'UNKNOWN' });
+    return (
+      <div className="lab-panel" style={{ padding: '10px 14px', background: 'rgba(255,160,80,0.06)', borderColor: 'var(--amber)' }}>
+        <span className="lab-mono" style={{ fontSize: 11, color: 'var(--amber)' }}>{msg}</span>
+      </div>
+    );
+  }
+
+  // Failed (network error, retries exhausted)
   return (
-    <div
-      className="lab-panel"
-      style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 14px', gap: 8,
-        background: 'rgba(255,100,80,0.06)', borderColor: 'rgba(255,100,80,0.4)',
-      }}
-    >
-      <span className="lab-label" style={{ fontSize: 11, color: '#ff8060', flex: 1 }}>
-        {state.status === 'error' ? state.message : t('online.submit.error')}
-      </span>
-      <button className="lab-btn lab-btn-sm" style={{ flexShrink: 0 }} type="button" onClick={onSubmit}>
-        {t('online.submit.retry')}
-      </button>
+    <div className="lab-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', gap: 8, background: 'rgba(255,100,80,0.06)', borderColor: 'rgba(255,100,80,0.4)' }}>
+      <div>
+        <div className="lab-mono" style={{ fontSize: 11, color: '#ff8060' }}>{t('online.submit.error')}</div>
+        <div className="lab-label" style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>{t('online.sync.retryInProfile')}</div>
+      </div>
     </div>
   );
 }

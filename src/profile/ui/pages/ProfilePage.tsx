@@ -1,19 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAllProfiles } from '../../application/profileService';
 import { formatGameTime } from '../../../game/ui/components/formatGameTime';
-import { IconUser, IconCog, IconCheck } from '../../../shared/ui/nano/Icon';
+import { IconUser, IconCog, IconCheck, IconWifi, IconCoin, IconRefresh } from '../../../shared/ui/nano/Icon';
 import { ScreenHeader } from '../../../shared/ui/components/ScreenHeader';
 import type { LocalProfile } from '../../domain/profile';
 import type { AppPage, NavParams } from '../../../app/ui/App';
 import {
   getAccount,
+  isLoggedIn,
   login,
   logout,
   register,
 } from '../../../online/application/authService';
 import { ApiError, API_ERROR_CODES } from '../../../online/api/contract';
-import type { AccountDto } from '../../../online/api/contract';
+import type { AccountDto, GameHistoryEntry } from '../../../online/api/contract';
+import { drainQueue, getQueueEntries } from '../../../online/application/syncService';
+import { fetchHistory } from '../../../online/application/historyService';
+import type { SyncQueueEntry } from '../../../online/infra/syncQueue';
 
 type ProfilePageProps = {
   go: (page: AppPage, params?: NavParams) => void;
@@ -23,9 +27,13 @@ type ProfilePageProps = {
 
 type AuthMode = 'register' | 'login';
 
-function OnlineAccountPanel() {
+type OnlineAccountPanelProps = {
+  account: AccountDto | null;
+  onAccountChange: (a: AccountDto | null) => void;
+};
+
+function OnlineAccountPanel({ account, onAccountChange }: OnlineAccountPanelProps) {
   const { t } = useTranslation();
-  const [account, setAccount] = useState<AccountDto | null>(() => getAccount());
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState<AuthMode>('register');
   const [email, setEmail] = useState('');
@@ -53,7 +61,7 @@ function OnlineAccountPanel() {
       } else {
         updated = await login({ email, password });
       }
-      setAccount(updated);
+      onAccountChange(updated);
       setShowForm(false);
       setEmail('');
       setPassword('');
@@ -87,7 +95,7 @@ function OnlineAccountPanel() {
     try {
       await logout();
     } finally {
-      setAccount(null);
+      onAccountChange(null);
       setLoggingOut(false);
     }
   }
@@ -315,9 +323,152 @@ function OnlineAccountPanel() {
   );
 }
 
+// ── Sync Queue Panel ─────────────────────────────────────────────
+
+function SyncQueuePanel() {
+  const { t } = useTranslation();
+  const [entries, setEntries] = useState<SyncQueueEntry[]>(() =>
+    getQueueEntries().filter((e) => e.status === 'pending' || e.status === 'failed'),
+  );
+  const [retrying, setRetrying] = useState(false);
+
+  if (entries.length === 0) return null;
+
+  async function handleRetryAll() {
+    setRetrying(true);
+    try {
+      await drainQueue();
+      setEntries(getQueueEntries().filter((e) => e.status === 'pending' || e.status === 'failed'));
+    } finally {
+      setRetrying(false);
+    }
+  }
+
+  return (
+    <div className="lab-panel">
+      <div className="lab-kicker" style={{ marginBottom: 8 }}>
+        {t('online.history.pendingSection')}
+        <span
+          className="lab-chip"
+          style={{ marginLeft: 8, fontSize: 9, padding: '1px 5px', color: 'var(--amber)', borderColor: 'var(--amber)' }}
+        >
+          {entries.length}
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+        {entries.map((e) => (
+          <div key={e.commandId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="lab-mono" style={{ fontSize: 12 }}>{e.payload.score.toLocaleString('es')}</span>
+            <span className="lab-label" style={{ fontSize: 10, color: e.status === 'failed' ? '#ff8060' : 'var(--amber)' }}>
+              {e.status === 'failed' ? t('online.submit.error') : t('online.sync.queued')}
+            </span>
+          </div>
+        ))}
+      </div>
+      <button
+        className="lab-btn lab-btn-block"
+        disabled={retrying || !isLoggedIn()}
+        style={{ fontSize: 12 }}
+        type="button"
+        onClick={() => { void handleRetryAll(); }}
+      >
+        <IconWifi size={13} />
+        {retrying ? t('online.sync.syncingNow') : t('online.history.retryAll')}
+      </button>
+    </div>
+  );
+}
+
+// ── Online History Panel ─────────────────────────────────────────
+
+function OnlineHistoryPanel() {
+  const { t } = useTranslation();
+  const [retryKey, setRetryKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [entries, setEntries] = useState<GameHistoryEntry[]>([]);
+
+  useEffect(() => {
+    setLoading(true);
+    setHasError(false);
+    fetchHistory(10, 0)
+      .then((res) => setEntries(res.entries))
+      .catch(() => setHasError(true))
+      .finally(() => setLoading(false));
+  }, [retryKey]);
+
+  return (
+    <div className="lab-panel">
+      <div className="lab-kicker" style={{ marginBottom: 8 }}>{t('online.history.section')}</div>
+
+      {loading && (
+        <span className="lab-label" style={{ color: 'var(--muted)', fontSize: 12 }}>
+          {t('online.history.loading')}
+        </span>
+      )}
+
+      {hasError && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span className="lab-label" style={{ color: '#ff8060', fontSize: 12 }}>{t('online.history.error')}</span>
+          <button
+            className="lab-btn lab-btn-sm"
+            type="button"
+            onClick={() => setRetryKey((k) => k + 1)}
+          >
+            <IconRefresh size={12} />
+            {t('online.history.retry')}
+          </button>
+        </div>
+      )}
+
+      {!loading && !hasError && entries.length === 0 && (
+        <span className="lab-label" style={{ color: 'var(--muted)', fontSize: 12 }}>
+          {t('online.history.empty')}
+        </span>
+      )}
+
+      {!loading && entries.length > 0 && (
+        <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {entries.map((e) => {
+            const hasRank = e.rank !== null && e.rank > 0;
+            const totalCoins = e.rewards.reduce((s, r) => s + r.coins, 0);
+            return (
+              <li
+                key={e.submissionId}
+                style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', alignItems: 'center', gap: 8 }}
+              >
+                <span
+                  className="lab-mono"
+                  style={{ fontSize: 11, color: hasRank ? 'var(--cyan)' : 'var(--dim)', fontWeight: 700 }}
+                >
+                  {hasRank ? `#${e.rank}` : t('online.history.outside')}
+                </span>
+                <span className="lab-mono" style={{ fontSize: 12, fontWeight: 700 }}>
+                  {e.score.toLocaleString('es')}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {totalCoins > 0 && (
+                    <span className="lab-mono" style={{ fontSize: 10, color: 'var(--amber)' }}>
+                      <IconCoin size={10} style={{ verticalAlign: 'middle' }} /> +{totalCoins}
+                    </span>
+                  )}
+                  <span className="lab-label" style={{ fontSize: 10, color: 'var(--dim)' }}>
+                    {new Date(e.submittedAt).toLocaleDateString('es')}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
 // ── ProfilePage ──────────────────────────────────────────────────
 
 export function ProfilePage({ go }: ProfilePageProps) {
+  const [account, setAccount] = useState<AccountDto | null>(() => getAccount());
   const profiles = getAllProfiles();
 
   return (
@@ -340,7 +491,11 @@ export function ProfilePage({ go }: ProfilePageProps) {
 
       <div className="screen-scroll" style={{ padding: '12px 14px 80px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        <OnlineAccountPanel />
+        <OnlineAccountPanel account={account} onAccountChange={setAccount} />
+
+        {account && <SyncQueuePanel />}
+
+        {account && <OnlineHistoryPanel />}
 
         <div className="lab-panel">
           <div className="lab-kicker" style={{ marginBottom: 8 }}>JUGADORES LOCALES</div>

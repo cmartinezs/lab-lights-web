@@ -4,12 +4,16 @@
 
 import { http, HttpResponse } from 'msw';
 import {
+  cacheCommand,
   computeRanking,
+  computeRewards,
   findAccountByEmail,
   findAccountByToken,
   findAccountByUsername,
+  findCachedCommand,
   generateReferralCode,
   generateToken,
+  getAccountScores,
   getDb,
   initDbIfNeeded,
   saveDb,
@@ -210,10 +214,19 @@ export const handlers = [
       );
     }
 
+    // R6: X-Command-Id idempotency — return cached result for duplicate commands
+    const commandId = request.headers.get('X-Command-Id');
+    if (commandId) {
+      const cached = findCachedCommand(db, commandId, account.id);
+      if (cached !== undefined) {
+        return HttpResponse.json(cached, { status: 200 });
+      }
+    }
+
     const body = await request.json() as Record<string, unknown>;
     const { mode, rows, columns, seed, score, moves, elapsedSeconds, powerUpsUsed, continued } = body;
 
-    // Mode validation (R5: classic 3x3 only)
+    // Mode validation (R5+: classic 3x3 only)
     if (mode !== 'classic' || rows !== 3 || columns !== 3) {
       return HttpResponse.json(
         { code: 'INVALID_MODE', message: 'En R5 solo se aceptan partidas Classic 3×3.' },
@@ -224,11 +237,10 @@ export const handlers = [
     // Aided game check
     const puUsed = Array.isArray(powerUpsUsed) ? powerUpsUsed : [];
     if (continued === true || puUsed.includes('invert')) {
-      const submissionId = crypto.randomUUID();
-      return HttpResponse.json(
-        { submissionId, accepted: false, rank: null, reason: 'AIDED_GAME' },
-        { status: 200 },
-      );
+      const rejectedResult = { submissionId: crypto.randomUUID(), accepted: false, rank: null, reason: 'AIDED_GAME', rewards: [] };
+      if (commandId) cacheCommand(db, commandId, account.id, rejectedResult);
+      saveDb(db);
+      return HttpResponse.json(rejectedResult, { status: 200 });
     }
 
     // Duplicate seed check (per user)
@@ -236,22 +248,23 @@ export const handlers = [
       (s) => s.accountId === account.id && s.seed === seed,
     );
     if (duplicate) {
-      const submissionId = crypto.randomUUID();
-      return HttpResponse.json(
-        { submissionId, accepted: false, rank: null, reason: 'DUPLICATE_SEED' },
-        { status: 200 },
-      );
+      const rejectedResult = { submissionId: crypto.randomUUID(), accepted: false, rank: null, reason: 'DUPLICATE_SEED', rewards: [] };
+      if (commandId) cacheCommand(db, commandId, account.id, rejectedResult);
+      saveDb(db);
+      return HttpResponse.json(rejectedResult, { status: 200 });
     }
 
     // Speed plausibility: < 200ms per move on average → suspicious
     const totalMs = (elapsedSeconds as number) * 1000;
     if ((moves as number) > 0 && totalMs / (moves as number) < 200) {
-      const submissionId = crypto.randomUUID();
-      return HttpResponse.json(
-        { submissionId, accepted: false, rank: null, reason: 'SUSPICIOUS_SPEED' },
-        { status: 200 },
-      );
+      const rejectedResult = { submissionId: crypto.randomUUID(), accepted: false, rank: null, reason: 'SUSPICIOUS_SPEED', rewards: [] };
+      if (commandId) cacheCommand(db, commandId, account.id, rejectedResult);
+      saveDb(db);
+      return HttpResponse.json(rejectedResult, { status: 200 });
     }
+
+    // R6: compute rewards before adding score (checks existing count)
+    const rewards = computeRewards(db, account.id, 999); // placeholder rank
 
     // Accept the score
     const newScore = {
@@ -266,19 +279,76 @@ export const handlers = [
       moves: moves as number,
       elapsedSeconds: elapsedSeconds as number,
       submittedAt: new Date().toISOString(),
+      commandId: commandId ?? undefined,
+      rewards,
     };
     db.scores.push(newScore);
-    saveDb(db);
 
-    // Compute rank
+    // Compute actual rank after inserting
     const ranked = computeRanking(db, 'classic', 3, 3);
     const rankIdx = ranked.findIndex((s) => s.username === account.username && s.score === (score as number));
     const rank = rankIdx >= 0 && rankIdx < 100 ? rankIdx + 1 : -1;
 
-    return HttpResponse.json(
-      { submissionId: newScore.id, accepted: true, rank },
-      { status: 201 },
-    );
+    // Re-check rank-based rewards now that we have the actual position
+    if (rank > 0 && rank <= 10) {
+      const rankRewards = computeRewards(db, account.id, rank);
+      rewards.push(...rankRewards);
+    }
+
+    const acceptedResult = { submissionId: newScore.id, accepted: true, rank, rewards };
+    if (commandId) cacheCommand(db, commandId, account.id, acceptedResult);
+    saveDb(db);
+
+    return HttpResponse.json(acceptedResult, { status: 201 });
+  }),
+
+  // ── GET /v1/me/history ──────────────────────────────────────
+  http.get('/v1/me/history', async ({ request }) => {
+    await delay(300);
+    const token = extractBearer(request);
+    if (!token) {
+      return HttpResponse.json(
+        { code: 'UNAUTHORIZED', message: 'Token ausente.' },
+        { status: 401 },
+      );
+    }
+
+    const db = initDbIfNeeded();
+    const account = findAccountByToken(db, token);
+    if (!account) {
+      return HttpResponse.json(
+        { code: 'UNAUTHORIZED', message: 'Token inválido o expirado.' },
+        { status: 401 },
+      );
+    }
+
+    const url = new URL(request.url);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '20', 10), 50);
+    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10);
+
+    const allScores = getAccountScores(db, account.id);
+    const total = allScores.length;
+    const pageScores = allScores.slice(offset, offset + limit);
+
+    // Compute rank for each entry
+    const ranked = computeRanking(db, 'classic', 3, 3);
+    const rankMap = new Map(ranked.map((s, i) => [s.id, i + 1]));
+
+    const entries = pageScores.map((s) => ({
+      submissionId: s.id,
+      mode: s.mode,
+      rows: s.rows,
+      columns: s.columns,
+      seed: s.seed,
+      score: s.score,
+      moves: s.moves,
+      elapsedSeconds: s.elapsedSeconds,
+      rank: rankMap.get(s.id) ?? null,
+      rewards: s.rewards ?? [],
+      submittedAt: s.submittedAt,
+    }));
+
+    return HttpResponse.json({ entries, total, limit, offset });
   }),
 
   // ── GET /v1/rankings/:mode ──────────────────────────────────

@@ -9,6 +9,7 @@ type FetchOpts = {
   body?: unknown;
   params?: Record<string, string | number | boolean>;
   skipAuth?: boolean;
+  commandId?: string;  // → X-Command-Id header for idempotent submissions
 };
 
 export async function apiFetch<T>(
@@ -21,6 +22,7 @@ export async function apiFetch<T>(
 
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (opts.commandId) headers['X-Command-Id'] = opts.commandId;
 
   const init: RequestInit = {
     method,

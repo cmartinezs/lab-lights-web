@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { applySettingsToDocument, getSettings } from '../../settings/application/settingsService';
 import { initSession, type SessionHistory } from '../../shared/infra/sessionStore';
 import { AppLayout } from '../../shared/ui/layout/AppLayout';
@@ -16,6 +16,7 @@ import { InitialsPage } from '../../game/ui/pages/InitialsPage';
 import { RankingsPage } from '../../rankings/ui/pages/RankingsPage';
 import { ProfilePage } from '../../profile/ui/pages/ProfilePage';
 import { SettingsPage } from '../../settings/ui/pages/SettingsPage';
+import { setupAutoSync } from '../../online/application/syncService';
 
 applySettingsToDocument(getSettings());
 export const SESSION_HISTORY: SessionHistory = initSession();
@@ -28,6 +29,8 @@ const INITIAL_SCREEN: AppPage = IS_TEST ? 'home' : 'splash';
 export function App() {
   const [page, setPage] = useState<AppPage>(INITIAL_SCREEN);
   const [params, setParams] = useState<NavParams>({});
+
+  useEffect(() => setupAutoSync(), []);
 
   const go = useCallback((next: AppPage, nextParams: NavParams = {}) => {
     setPage(next);

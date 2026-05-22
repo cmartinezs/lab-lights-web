@@ -48,11 +48,19 @@ export type MeResponse = {
   account: AccountDto;
 };
 
+// R6: rewards returned inline when a score is accepted
+export type RewardDto = {
+  type: string;     // 'FIRST_ONLINE_SUBMISSION' | 'TOP10_ENTRY' | 'TOP3_ENTRY'
+  coins: number;    // coins credited
+  label: string;    // human-readable Spanish label
+};
+
 export type SubmitScoreResponse = {
   submissionId: string;
   accepted: boolean;
   rank: number | null;
   reason?: string;
+  rewards?: RewardDto[];  // R6: rewards earned by this submission
 };
 
 export type RankingEntry = {
@@ -70,6 +78,28 @@ export type RankingResponse = {
   columns: number;
   entries: RankingEntry[];
   updatedAt: string;
+};
+
+// R6: online game history
+export type GameHistoryEntry = {
+  submissionId: string;
+  mode: string;
+  rows: number;
+  columns: number;
+  seed: string;
+  score: number;
+  moves: number;
+  elapsedSeconds: number;
+  rank: number | null;
+  rewards: RewardDto[];
+  submittedAt: string;
+};
+
+export type GameHistoryResponse = {
+  entries: GameHistoryEntry[];
+  total: number;
+  limit: number;
+  offset: number;
 };
 
 export type HealthResponse = {

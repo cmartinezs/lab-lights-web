@@ -12,6 +12,11 @@ info:
     - Envío y validación de puntajes Classic 3×3
     - Ranking online Top 100 (modo Classic)
 
+    ## Scope R6 — Sincronización y resiliencia
+    - Header `X-Command-Id` en `POST /v1/scores` para idempotencia
+    - Recompensas inline en `SubmitScoreResponse` (one-time: primera partida, top3/10)
+    - `GET /v1/me/history` — historial paginado de partidas del usuario
+
     ## Autenticación
     Las rutas protegidas requieren `Authorization: Bearer <jwt>`.
     El token JWT tiene TTL de 24 horas y es emitido por el servidor tras
@@ -216,6 +221,71 @@ paths:
   # Scores
   # ────────────────────────────────────────────────────────────────
 
+  /me/history:
+    get:
+      summary: Historial de partidas online del usuario
+      operationId: getMyHistory
+      tags: [profile]
+      security:
+        - bearerAuth: []
+      description: |
+        Devuelve el historial paginado de partidas enviadas por el usuario autenticado,
+        ordenadas por `submittedAt` DESC (más recientes primero).
+
+        El campo `rank` refleja la posición actual en el ranking (puede haber cambiado
+        desde el envío si otros usuarios publicaron puntajes más altos).
+        `rewards` contiene las recompensas otorgadas en esa submisión.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+          description: Entradas por página
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Desplazamiento para paginación
+      responses:
+        '200':
+          description: Historial paginado del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameHistoryResponse'
+              example:
+                entries:
+                  - submissionId: "550e8400-e29b-41d4-a716-446655440000"
+                    mode: classic
+                    rows: 3
+                    columns: 3
+                    seed: "classic-3x3-abc123"
+                    score: 8500
+                    moves: 6
+                    elapsedSeconds: 11.5
+                    rank: 4
+                    rewards:
+                      - type: FIRST_ONLINE_SUBMISSION
+                        coins: 500
+                        label: "Primera partida online"
+                    submittedAt: "2026-05-22T10:00:00Z"
+                total: 1
+                limit: 20
+                offset: 0
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
   /scores:
     post:
       summary: Enviar puntaje para validación y ranking
@@ -248,6 +318,20 @@ paths:
         Un segundo envío del mismo seed por el mismo usuario devuelve
         `DUPLICATE_SEED`. El cliente debe marcar la partida local como
         enviada para no reintentar.
+      parameters:
+        - in: header
+          name: X-Command-Id
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: |
+            UUID único del comando (R6 — idempotencia).
+            Si se envía, el servidor almacena el resultado asociado a este ID y lo
+            devuelve sin reprocesar si el mismo `X-Command-Id` se reenvía con el
+            mismo token de autenticación.
+            El cliente debe generar un UUID por partida y reutilizarlo en los
+            reintentos para garantizar que un resultado no se duplique.
       requestBody:
         required: true
         content:
@@ -578,6 +662,94 @@ components:
             Código de rechazo cuando `accepted = false`.
             Posibles valores: HMAC_FAILED, REPLAY_MISMATCH, SCORE_MISMATCH,
             AIDED_GAME, DUPLICATE_SEED, SUSPICIOUS_SPEED.
+        rewards:
+          type: array
+          description: |
+            Recompensas otorgadas por esta submisión (R6).
+            Solo presentes cuando `accepted = true`.
+            Los tipos one-time solo se otorgan una vez por cuenta:
+            - `FIRST_ONLINE_SUBMISSION` (500 monedas) — primera partida online.
+            - `TOP10_ENTRY` (200 monedas) — primera entrada al Top 10.
+            - `TOP3_ENTRY` (300 monedas) — primera entrada al Top 3.
+          items:
+            $ref: '#/components/schemas/RewardDto'
+
+    # ── Rewards ─────────────────────────────────────────────────
+
+    RewardDto:
+      type: object
+      required: [type, coins, label]
+      properties:
+        type:
+          type: string
+          enum: [FIRST_ONLINE_SUBMISSION, TOP10_ENTRY, TOP3_ENTRY]
+          description: Tipo de recompensa one-time por cuenta
+        coins:
+          type: integer
+          description: Monedas acreditadas en el ledger online del usuario
+          example: 500
+        label:
+          type: string
+          description: Etiqueta en español para mostrar al usuario
+          example: "Primera partida online"
+
+    # ── History ─────────────────────────────────────────────────
+
+    GameHistoryEntry:
+      type: object
+      required: [submissionId, mode, rows, columns, seed, score, moves, elapsedSeconds, rank, rewards, submittedAt]
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+        mode:
+          type: string
+          example: classic
+        rows:
+          type: integer
+          example: 3
+        columns:
+          type: integer
+          example: 3
+        seed:
+          type: string
+          description: Seed de la partida
+        score:
+          type: integer
+        moves:
+          type: integer
+        elapsedSeconds:
+          type: number
+        rank:
+          type: integer
+          nullable: true
+          description: Posición actual en el ranking. `null` si fuera del top 100 o no aplica.
+        rewards:
+          type: array
+          items:
+            $ref: '#/components/schemas/RewardDto'
+          description: Recompensas otorgadas en esta submisión
+        submittedAt:
+          type: string
+          format: date-time
+
+    GameHistoryResponse:
+      type: object
+      required: [entries, total, limit, offset]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameHistoryEntry'
+        total:
+          type: integer
+          description: Total de partidas del usuario (para paginación)
+        limit:
+          type: integer
+          description: Límite aplicado en esta petición
+        offset:
+          type: integer
+          description: Desplazamiento aplicado en esta petición
 
     # ── Rankings ────────────────────────────────────────────────
 
