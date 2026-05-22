@@ -13,6 +13,7 @@ import { GamePage } from '../../game/ui/pages/GamePage';
 import { ResultPage } from '../../game/ui/pages/ResultPage';
 import { ContinuePage } from '../../game/ui/pages/ContinuePage';
 import { InitialsPage } from '../../game/ui/pages/InitialsPage';
+import { DailyPage } from '../../game/ui/pages/DailyPage';
 import { RankingsPage } from '../../rankings/ui/pages/RankingsPage';
 import { ProfilePage } from '../../profile/ui/pages/ProfilePage';
 import { SettingsPage } from '../../settings/ui/pages/SettingsPage';
@@ -54,6 +55,7 @@ export function App() {
                 back={() => go('modes')}
               />
             )}
+            {page === 'daily'    && <DailyPage go={go} />}
             {page === 'game'     && (
               <GamePage
                 params={params}

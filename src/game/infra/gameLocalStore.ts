@@ -179,7 +179,7 @@ export type GlobalStats = {
   byMode: Record<GameMode, number>;
 };
 
-const ALL_MODES: GameMode[] = ['classic', 'dimensional', 'time-attack', 'move-limit', 'blind', 'mirror', 'chaos', 'chain', 'puzzle'];
+const ALL_MODES: GameMode[] = ['classic', 'dimensional', 'time-attack', 'move-limit', 'blind', 'mirror', 'chaos', 'chain', 'puzzle', 'daily'];
 
 export function loadGlobalStats(): GlobalStats {
   const byMode = {} as Record<GameMode, number>;

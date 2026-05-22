@@ -71,7 +71,7 @@ export function ModesPage({ go }: ModesPageProps) {
                 key={m.id}
                 className="lab-mode-card"
                 type="button"
-                onClick={() => go('config', { modeId: m.id })}
+                onClick={() => m.id === 'daily' ? go('daily') : go('config', { modeId: m.id })}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div style={{

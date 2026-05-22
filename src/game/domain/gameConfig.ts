@@ -9,7 +9,8 @@ export type GameMode =
   | 'mirror'
   | 'chaos'
   | 'chain'
-  | 'puzzle';
+  | 'puzzle'
+  | 'daily';
 
 export const BOARD_SIZE_MIN = 3;
 export const BOARD_SIZE_MAX = 10;
@@ -36,7 +37,7 @@ export function calculateMoveLimit(size: BoardSize): number {
 
 // Modes locked to 3×3 — no board-size selection
 const FIXED_3X3_MODES: ReadonlySet<GameMode> = new Set([
-  'classic', 'blind', 'mirror', 'chaos', 'chain', 'puzzle',
+  'classic', 'blind', 'mirror', 'chaos', 'chain', 'puzzle', 'daily',
 ]);
 
 export function isFixed3x3Mode(mode: GameMode): boolean {
@@ -69,5 +70,6 @@ export function configLabel(config: GameConfig): string {
     case 'chaos':       return 'Chaos 3×3';
     case 'chain':       return 'Chain 3×3';
     case 'puzzle':      return 'Puzzle 3×3';
+    case 'daily':       return 'Daily Challenge';
   }
 }

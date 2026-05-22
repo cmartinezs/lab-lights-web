@@ -9,12 +9,16 @@ import type { CellPosition } from '../../domain/board';
 import {
   DEFAULT_GAME_CONFIG, createGameConfig, type GameConfig, type GameMode,
 } from '../../domain/gameConfig';
+import { getDailySeed, getTodayKey } from '../../domain/daily';
 import { getPuzzle } from '../../domain/puzzle';
+import { updateStreakOnWin, saveTodayScore } from '../../infra/dailyStore';
+import { calcDailyReward } from '../../../liveops/domain/remoteConfig';
+import { getCachedRemoteConfig } from '../../../liveops/infra/remoteConfigService';
 import {
   loadCurrentSeed, loadSavedConfig, rememberPlayedSeed,
   saveConfig,
 } from '../../infra/gameLocalStore';
-import { getBalance, spendCoins } from '../../../economy/infra/walletStore';
+import { earnCoins, getBalance, spendCoins } from '../../../economy/infra/walletStore';
 import { GameBoard } from '../components/GameBoard';
 import { IconPause, IconPlay, IconX, IconContrast, IconUndo, IconShuffle, IconClock, IconBolt, IconCoin } from '../../../shared/ui/nano/Icon';
 import type { AppPage, NavParams } from '../../../app/ui/App';
@@ -51,6 +55,10 @@ function buildSession(navParams: NavParams): GameSession {
     config = createGameConfig(mode === 'classic' || !mode ? 'classic' : mode, { rows: size, columns: size });
   }
   const continued = navParams.continued === true;
+  if (config.mode === 'daily') {
+    const seed = typeof navParams.seed === 'string' ? navParams.seed : getDailySeed();
+    return startGame(config, seed, { continued });
+  }
   if (config.mode === 'puzzle') {
     const idx = typeof navParams.puzzleIndex === 'number' ? navParams.puzzleIndex : 0;
     return startGame(config, getPuzzle(idx).seed, { continued });
@@ -96,6 +104,14 @@ export function GamePage({ params, onWin, onLose, onNavigate }: GamePageProps) {
       const p = toResultParams(session);
       rememberPlayedSeed(session.config, session.seed);
       saveConfig(session.config);
+      if (session.config.mode === 'daily') {
+        const todayKey = getTodayKey();
+        const streak = updateStreakOnWin(todayKey);
+        saveTodayScore(session.score);
+        const bonus = calcDailyReward(getCachedRemoteConfig(), streak);
+        earnCoins(bonus);
+        setBalance(getBalance());
+      }
       setTimeout(() => onWin(p), 300);
     } else if (session.status === 'lost') {
       setNotified(true);

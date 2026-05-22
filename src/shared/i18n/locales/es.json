@@ -4,7 +4,7 @@
     "dimensional": "Dimensional",
     "timeAttack": "Time Attack",
     "moveLimit": "Move Limit",
-    "daily": "Daily Challenge",
+    "daily": "Desafío Diario",
     "blind": "Blind",
     "mirror": "Mirror",
     "chaos": "Chaos",
@@ -20,7 +20,8 @@
       "mirror": "Simetría especular en movimientos.",
       "chaos": "Perturbaciones aleatorias.",
       "chain": "Cascadas en cadena.",
-      "puzzle": "Resuelve el tablero en el menor número de movimientos posible."
+      "puzzle": "Resuelve el tablero en el menor número de movimientos posible.",
+      "daily": "Una partida por día con seed compartida globalmente. Classic 3×3."
     },
     "shortDesc": {
       "classic": "3×3 sin límites",
@@ -32,8 +33,20 @@
       "mirror": "Simetría especular en movimientos",
       "chaos": "Perturbaciones aleatorias",
       "chain": "Cascadas en cadena",
-      "puzzle": "Resuelve en el mínimo de pasos"
+      "puzzle": "Resuelve en el mínimo de pasos",
+      "daily": "Un desafío compartido · seed global diaria"
     }
+  },
+  "daily": {
+    "kicker": "// DESAFÍO DIARIO",
+    "title": "Daily Challenge",
+    "todaySeed": "SEED DE HOY",
+    "description": "Una partida por día con seed compartida globalmente. Classic 3×3. Resuelve el tablero para registrar tu resultado y mantener tu racha.",
+    "streakLabel": "RACHA DIARIA",
+    "days": "días consecutivos",
+    "playButton": "Jugar hoy",
+    "playedToday": "YA JUGASTE HOY",
+    "comeBackTomorrow": "Vuelve mañana para el siguiente desafío"
   },
   "modes": {
     "kicker": "// ARCHIVO DE MODOS",
@@ -84,7 +97,8 @@
       "mirror": "MIRROR",
       "chaos": "CHAOS",
       "chain": "CHAIN",
-      "puzzle": "PUZZLE"
+      "puzzle": "PUZZLE",
+      "daily": "DAILY"
     },
     "puzzle": {
       "parLabel": "PAR",

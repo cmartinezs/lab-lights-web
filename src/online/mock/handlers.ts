@@ -54,6 +54,16 @@ function extractBearer(request: Request): string | null {
 
 export const handlers = [
 
+  // ── GET /v1/config ─────────────────────────────────────────
+  http.get('/v1/config', async () => {
+    await delay(80);
+    return HttpResponse.json({
+      dailyBonusCoins: 50,
+      streakMultiplier: 10,
+      streakCap: 7,
+    });
+  }),
+
   // ── GET /v1/health ─────────────────────────────────────────
   http.get('/v1/health', async () => {
     await delay(100);

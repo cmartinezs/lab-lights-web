@@ -6,6 +6,7 @@ export type AppPage =
   | 'home'
   | 'modes'
   | 'config'
+  | 'daily'
   | 'game'
   | 'result'
   | 'continue'
