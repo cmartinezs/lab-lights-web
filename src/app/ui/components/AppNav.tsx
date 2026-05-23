@@ -14,7 +14,9 @@ export type AppPage =
   | 'rankings'
   | 'shop'
   | 'profile'
-  | 'settings';
+  | 'settings'
+  | 'friends'
+  | 'add-friend';
 
 type NavItem = {
   id: AppPage;

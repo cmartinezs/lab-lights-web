@@ -15,7 +15,6 @@
       "dimensional": "Tablero de tamaño variable. De 3×3 hasta 10×10.",
       "timeAttack": "Debes resolver el tablero antes de que se agote el temporizador.",
       "moveLimit": "Tienes un número limitado de movimientos para resolver el tablero.",
-      "daily": "Una partida única por día con seed compartida globalmente.",
       "blind": "Sin estado visible del tablero.",
       "mirror": "Simetría especular en movimientos.",
       "chaos": "Perturbaciones aleatorias.",
@@ -149,6 +148,19 @@
       "coins": "MONEDAS",
       "streak": "RACHA"
     },
+    "levelUp": {
+      "title": "¡Nivel alcanzado!",
+      "prestige": "¡Prestige {{prestige}}!"
+    },
+    "achievements": {
+      "title": "LOGROS DESBLOQUEADOS"
+    },
+    "puzzle": {
+      "solutionBtn": "Ver solución óptima",
+      "solutionTitle": "SOLUCIÓN ÓPTIMA",
+      "solutionDesc": "Secuencia de {{moves}} movimientos",
+      "movesLabel": "Movimiento {{n}}"
+    },
     "cta": {
       "initials": "Registrar iniciales",
       "noRanking": "Partidas con ayuda no califican al ranking",
@@ -184,6 +196,64 @@
     "newGame": "Nueva partida",
     "rankings": "Ver ranking"
   },
+  "progression": {
+    "kicker": "// PROGRESIÓN",
+    "level": "NIVEL {{level}}",
+    "prestige": "PRESTIGE {{prestige}} · {{name}}",
+    "xpProgress": "{{xp}} / {{total}} XP",
+    "maxLevel": "NVL MÁX.",
+    "totalWins": "{{count}} victorias"
+  },
+  "achievements": {
+    "kicker": "// LOGROS",
+    "unlocked": "DESBLOQUEADO",
+    "locked": "BLOQUEADO",
+    "empty": "Sin logros aún",
+    "emptyHint": "Juega para desbloquear logros",
+    "count": "{{unlocked}} / {{total}}"
+  },
+  "shop": {
+    "kicker": "// EXPENDIO DE BONUS",
+    "title": "Tienda",
+    "tabs": {
+      "powerups": "Power-ups",
+      "themes": "Temas"
+    },
+    "balance": "MONEDAS",
+    "buy": "Comprar",
+    "use": "Usar",
+    "active": "EN USO",
+    "owned": "Tienes",
+    "notEnough": "Monedas insuficientes",
+    "purchased": "¡Adquirido!",
+    "activated": "¡Tema aplicado!",
+    "comingSoon": "Power-ups disponibles próximamente en partida",
+    "powerupDesc": "Los power-ups se activan durante la partida"
+  },
+  "social": {
+    "kicker": "// RED SOCIAL",
+    "friends": {
+      "title": "Amigos",
+      "empty": "Sin amigos aún",
+      "emptyHint": "Agrega amigos con su código de referido",
+      "addBtn": "Agregar amigo",
+      "onlineBadge": "EN LÍNEA",
+      "challenge": "Desafiar"
+    },
+    "addFriend": {
+      "title": "Agregar amigo",
+      "kicker": "// AGREGAR AMIGO",
+      "codeLabel": "Código de referido",
+      "codePlaceholder": "LAB-XXXXXXXX",
+      "addBtn": "Agregar",
+      "adding": "Agregando...",
+      "success": "¡Amigo agregado!",
+      "error": "Código no encontrado",
+      "selfError": "No puedes agregarte a ti mismo",
+      "shareTitle": "Compartir mi código",
+      "myCode": "Mi código"
+    }
+  },
   "online": {
     "mockBadge": "MOCK",
     "account": {
@@ -195,6 +265,7 @@
       "username": "Usuario",
       "referralCode": "Código de referido",
       "referralCopyHint": "Toca para copiar",
+      "referralShareHint": "Compartir",
       "copied": "¡Copiado!",
       "logout": "Cerrar sesión"
     },

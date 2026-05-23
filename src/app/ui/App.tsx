@@ -17,9 +17,13 @@ import { DailyPage } from '../../game/ui/pages/DailyPage';
 import { RankingsPage } from '../../rankings/ui/pages/RankingsPage';
 import { ProfilePage } from '../../profile/ui/pages/ProfilePage';
 import { SettingsPage } from '../../settings/ui/pages/SettingsPage';
+import { FriendsPage } from '../../social/ui/pages/FriendsPage';
+import { AddFriendPage } from '../../social/ui/pages/AddFriendPage';
 import { setupAutoSync } from '../../online/application/syncService';
+import { applyPersistedTheme } from '../../economy/infra/themeStore';
 
 applySettingsToDocument(getSettings());
+applyPersistedTheme();
 export const SESSION_HISTORY: SessionHistory = initSession();
 
 export type NavParams = Record<string, unknown>;
@@ -69,8 +73,10 @@ export function App() {
             {page === 'initials' && <InitialsPage params={params} go={go} />}
             {page === 'rankings' && <RankingsPage go={go} />}
             {page === 'shop'     && <ShopPage go={go} />}
-            {page === 'profile'  && <ProfilePage go={go} />}
-            {page === 'settings' && <SettingsPage go={go} back={() => go('profile')} />}
+            {page === 'profile'     && <ProfilePage go={go} />}
+            {page === 'settings'    && <SettingsPage go={go} back={() => go('profile')} />}
+            {page === 'friends'     && <FriendsPage go={go} />}
+            {page === 'add-friend'  && <AddFriendPage go={go} />}
           </div>
           {showNav && (
             <AppNav activePage={page} onNavigate={(p) => go(p)} />

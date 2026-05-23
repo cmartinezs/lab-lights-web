@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAllProfiles } from '../../application/profileService';
 import { formatGameTime } from '../../../game/ui/components/formatGameTime';
-import { IconUser, IconCog, IconCheck, IconWifi, IconCoin, IconRefresh } from '../../../shared/ui/nano/Icon';
+import { IconUser, IconCog, IconCheck, IconWifi, IconCoin, IconRefresh, IconStar, IconTrophy } from '../../../shared/ui/nano/Icon';
 import { ScreenHeader } from '../../../shared/ui/components/ScreenHeader';
 import type { LocalProfile } from '../../domain/profile';
 import type { AppPage, NavParams } from '../../../app/ui/App';
+import { getProgressionSnapshot, PRESTIGE_NAMES } from '../../../progression/application/progressionService';
+import { ACHIEVEMENTS, loadUnlocked } from '../../../achievements/application/achievementsService';
 import {
   getAccount,
   isLoggedIn,
@@ -465,9 +467,121 @@ function OnlineHistoryPanel() {
   );
 }
 
+// ── Progression Panel ───────────────────────────────────────────
+
+function ProgressionPanel() {
+  const { t } = useTranslation();
+  const snap = getProgressionSnapshot();
+  const { level, prestige, xpInLevel, xpToNext, progressPct, totalWins } = snap;
+  const prestigeName = PRESTIGE_NAMES[prestige];
+
+  return (
+    <div className="lab-panel">
+      <div className="lab-kicker" style={{ marginBottom: 10 }}>{t('progression.kicker')}</div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: prestige > 0 ? 'rgba(246,184,75,0.12)' : 'var(--cyan-dim)',
+            border: `2px solid ${prestige > 0 ? 'var(--amber)' : 'var(--cyan)'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            {prestige > 0
+              ? <IconStar size={16} style={{ color: 'var(--amber)' }} />
+              : <IconTrophy size={14} style={{ color: 'var(--cyan)' }} />}
+          </div>
+          <div>
+            <div className="lab-mono" style={{ fontSize: 15, fontWeight: 700, color: prestige > 0 ? 'var(--amber)' : 'var(--cyan)' }}>
+              {t('progression.level', { level })}
+            </div>
+            {prestige > 0 && (
+              <div className="lab-label" style={{ fontSize: 10, color: 'var(--amber)', marginTop: 1 }}>
+                {t('progression.prestige', { prestige, name: prestigeName })}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="lab-mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
+          {t('progression.totalWins', { count: totalWins })}
+        </div>
+      </div>
+
+      {/* XP bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          flex: 1, height: 6, background: 'var(--panel-2)',
+          borderRadius: 3, overflow: 'hidden', border: '1px solid var(--line)',
+        }}>
+          <div style={{
+            height: '100%', width: `${progressPct}%`,
+            background: prestige > 0 ? 'var(--amber)' : 'var(--cyan)',
+            borderRadius: 3, transition: 'width 0.4s ease',
+          }} />
+        </div>
+        <span className="lab-mono" style={{ fontSize: 9, color: 'var(--muted)', flexShrink: 0 }}>
+          {t('progression.xpProgress', { xp: xpInLevel, total: xpToNext })}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Achievements Panel ───────────────────────────────────────────
+
+function AchievementsPanel() {
+  const { t } = useTranslation();
+  const unlocked = new Set(loadUnlocked().map((a) => a.id));
+  const total = ACHIEVEMENTS.length;
+  const unlockedCount = unlocked.size;
+
+  return (
+    <div className="lab-panel">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div className="lab-kicker">{t('achievements.kicker')}</div>
+        <span className="lab-mono" style={{ fontSize: 10, color: 'var(--muted)' }}>
+          {t('achievements.count', { unlocked: unlockedCount, total })}
+        </span>
+      </div>
+
+      {unlockedCount === 0 ? (
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <div className="lab-mono" style={{ fontSize: 12, color: 'var(--muted)' }}>{t('achievements.empty')}</div>
+          <div className="lab-label" style={{ color: 'var(--dim)', marginTop: 4 }}>{t('achievements.emptyHint')}</div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {ACHIEVEMENTS.map((a) => {
+            const done = unlocked.has(a.id);
+            return (
+              <div
+                key={a.id}
+                title={`${a.name}: ${a.desc}`}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  padding: '8px 4px', borderRadius: 6,
+                  background: done ? 'var(--panel-2)' : 'transparent',
+                  border: `1px solid ${done ? 'var(--line-soft)' : 'transparent'}`,
+                  opacity: done ? 1 : 0.3,
+                }}
+              >
+                <span style={{ fontSize: 20 }}>{a.icon}</span>
+                <span className="lab-mono" style={{ fontSize: 8, color: done ? 'var(--text-2)' : 'var(--dim)', textAlign: 'center', lineHeight: 1.2 }}>
+                  {a.name}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── ProfilePage ──────────────────────────────────────────────────
 
 export function ProfilePage({ go }: ProfilePageProps) {
+  const { t } = useTranslation();
   const [account, setAccount] = useState<AccountDto | null>(() => getAccount());
   const profiles = getAllProfiles();
 
@@ -491,11 +605,26 @@ export function ProfilePage({ go }: ProfilePageProps) {
 
       <div className="screen-scroll" style={{ padding: '12px 14px 80px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
+        <ProgressionPanel />
+
+        <AchievementsPanel />
+
         <OnlineAccountPanel account={account} onAccountChange={setAccount} />
 
         {account && <SyncQueuePanel />}
 
         {account && <OnlineHistoryPanel />}
+
+        {account && (
+          <button
+            className="lab-btn lab-btn-ghost lab-btn-block"
+            style={{ fontSize: 12 }}
+            type="button"
+            onClick={() => go('friends')}
+          >
+            {t('social.friends.title')} →
+          </button>
+        )}
 
         <div className="lab-panel">
           <div className="lab-kicker" style={{ marginBottom: 8 }}>JUGADORES LOCALES</div>

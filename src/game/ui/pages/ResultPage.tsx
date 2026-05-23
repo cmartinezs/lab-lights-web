@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IconPlay, IconCheck, IconX, IconStar } from '../../../shared/ui/nano/Icon';
+import { IconPlay, IconCheck, IconX, IconStar, IconChevronDown, IconChevronUp } from '../../../shared/ui/nano/Icon';
 import { earnCoins } from '../../../economy/infra/walletStore';
+import { awardXpForWin, type WinResult } from '../../../progression/application/progressionService';
+import { checkAndUnlock, findAchievement } from '../../../achievements/application/achievementsService';
+import { getDailyState } from '../../../game/infra/dailyStore';
 import type { AppPage, NavParams } from '../../../app/ui/App';
+import type { CellPosition } from '../../domain/board';
 
 function modeKey(id: string): string {
   return id.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
@@ -12,6 +16,104 @@ type ResultPageProps = {
   params: NavParams;
   go: (page: AppPage, params?: NavParams) => void;
 };
+
+function SolutionPanel({ setupMoves }: { setupMoves: CellPosition[] }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="lab-panel" style={{ padding: '12px 14px' }}>
+      <button
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+          padding: 0, color: 'var(--text)',
+        }}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="lab-kicker">{t('result.puzzle.solutionBtn')}</span>
+        {open ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 10 }}>
+          <div className="lab-label" style={{ color: 'var(--muted)', fontSize: 11, marginBottom: 8 }}>
+            {t('result.puzzle.solutionDesc', { moves: setupMoves.length })}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+            {setupMoves.map((pos, i) => (
+              <div
+                key={i}
+                className="lab-panel"
+                style={{ padding: '6px 8px', textAlign: 'center', background: 'var(--panel-2)' }}
+              >
+                <div className="lab-kicker" style={{ fontSize: 8, marginBottom: 2 }}>
+                  {t('result.puzzle.movesLabel', { n: i + 1 })}
+                </div>
+                <div className="lab-mono" style={{ fontSize: 12, color: 'var(--cyan)' }}>
+                  {pos.row + 1},{pos.column + 1}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LevelUpBanner({ winResult }: { winResult: WinResult }) {
+  const { t } = useTranslation();
+  if (!winResult.didLevelUp && !winResult.didPrestige) return null;
+
+  return (
+    <div
+      className="lab-panel"
+      style={{
+        padding: '10px 14px', textAlign: 'center',
+        borderColor: winResult.didPrestige ? 'var(--amber)' : 'var(--cyan)',
+        background: winResult.didPrestige ? 'rgba(246,184,75,0.06)' : 'var(--cyan-dim)',
+      }}
+    >
+      <div className="lab-mono" style={{ fontSize: 13, color: winResult.didPrestige ? 'var(--amber)' : 'var(--cyan)', fontWeight: 700 }}>
+        {winResult.didPrestige
+          ? t('result.levelUp.prestige', { prestige: winResult.prestige })
+          : t('result.levelUp.title')}
+      </div>
+      {!winResult.didPrestige && (
+        <div className="lab-label" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+          Nivel {winResult.snapshot.level}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AchievementsBanner({ ids }: { ids: string[] }) {
+  const { t } = useTranslation();
+  if (ids.length === 0) return null;
+  return (
+    <div className="lab-panel" style={{ padding: '10px 14px' }}>
+      <div className="lab-kicker" style={{ marginBottom: 8 }}>{t('result.achievements.title')}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {ids.map((id) => {
+          const a = findAchievement(id as Parameters<typeof findAchievement>[0]);
+          if (!a) return null;
+          return (
+            <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>{a.icon}</span>
+              <div>
+                <div className="lab-mono" style={{ fontSize: 12, fontWeight: 700 }}>{a.name}</div>
+                <div className="lab-label" style={{ fontSize: 10, color: 'var(--muted)' }}>{a.desc}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function ResultPage({ params, go }: ResultPageProps) {
   const { t } = useTranslation();
@@ -25,17 +127,48 @@ export function ResultPage({ params, go }: ResultPageProps) {
   const powerUpsUsed  = Array.isArray(params.powerUpsUsed) ? params.powerUpsUsed : [];
   const continued     = params.continued === true;
   const verified      = params.verified !== false;
+  const setupMoves    = Array.isArray(params.setupMoves)
+    ? (params.setupMoves as CellPosition[])
+    : null;
   const aided         = powerUpsUsed.length > 0 || continued;
 
   const coinsEarned = win && verified ? Math.round(score / 200) : 0;
   const creditedRef = useRef(false);
+  const [winResult, setWinResult] = useState<WinResult | null>(null);
+  const [newAchievements, setNewAchievements] = useState<string[]>([]);
 
   useEffect(() => {
-    if (win && verified && coinsEarned > 0 && !creditedRef.current) {
+    if (win && verified && !creditedRef.current) {
       creditedRef.current = true;
-      earnCoins(coinsEarned);
+      if (coinsEarned > 0) earnCoins(coinsEarned);
+
+      const result = awardXpForWin({
+        score,
+        mode,
+        isPuzzle: mode === 'puzzle',
+        isDaily: mode === 'daily',
+      });
+      setWinResult(result);
+
+      const streak = getDailyState().streak;
+
+      const unlocked = checkAndUnlock({
+        mode,
+        score,
+        moves,
+        elapsedSeconds: elapsedSecs,
+        win: true,
+        streak,
+        level: result.snapshot.level,
+        prestige: result.prestige,
+        totalWins: result.totalWins,
+        puzzlesSolved: result.puzzlesSolved,
+        dailyCompleted: result.dailyCompleted,
+      });
+      setNewAchievements(unlocked);
     }
-  }, [win, verified, coinsEarned]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePlayAgain = useCallback(() => {
     go('game', { mode, size, seed });
@@ -146,7 +279,9 @@ export function ResultPage({ params, go }: ResultPageProps) {
         <div style={{ display: 'flex', gap: 8 }}>
           <div className="lab-panel" style={{ flex: 1, padding: '10px 12px', textAlign: 'center' }}>
             <div className="lab-kicker" style={{ marginBottom: 4 }}>{t('result.rewards.xp')}</div>
-            <div className="lab-mono" style={{ fontSize: 18, color: 'var(--cyan)', fontWeight: 700 }}>+{Math.round(score / 100)}</div>
+            <div className="lab-mono" style={{ fontSize: 18, color: 'var(--cyan)', fontWeight: 700 }}>
+              +{winResult?.xpEarned ?? Math.round(score / 100)}
+            </div>
           </div>
           <div className="lab-panel" style={{ flex: 1, padding: '10px 12px', textAlign: 'center' }}>
             <div className="lab-kicker" style={{ marginBottom: 4 }}>{t('result.rewards.coins')}</div>
@@ -159,6 +294,17 @@ export function ResultPage({ params, go }: ResultPageProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Level up banner */}
+      {winResult && <LevelUpBanner winResult={winResult} />}
+
+      {/* Achievements unlocked */}
+      <AchievementsBanner ids={newAchievements} />
+
+      {/* Puzzle solution */}
+      {win && mode === 'puzzle' && setupMoves && setupMoves.length > 0 && (
+        <SolutionPanel setupMoves={setupMoves} />
       )}
 
       {/* CTAs */}

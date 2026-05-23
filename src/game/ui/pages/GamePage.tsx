@@ -36,6 +36,8 @@ type GameResultParams = {
   powerUpsUsed: string[];
   continued: boolean;
   verified: boolean;
+  puzzlePar?: number;
+  setupMoves?: { row: number; column: number }[];
 };
 
 type GamePageProps = {
@@ -417,5 +419,7 @@ function toResultParams(session: GameSession): GameResultParams {
     powerUpsUsed:   session.powerUpsUsed,
     continued:      session.continued,
     verified:       verifyBoardIntegrity(session),
+    puzzlePar:      session.puzzlePar ?? undefined,
+    setupMoves:     session.config.mode === 'puzzle' ? session.setupMoves : undefined,
   };
 }
